@@ -41,13 +41,19 @@
 typedef struct {
   float x;
   float y;
+  float r;
+  float g;
+  float b;
+  int cw;       // color wighting
+  double fg;    // foreground probability
+  int v;        // foreground votes
 } SDF;
 
 template<>
 struct voxel_traits<SDF> {
   typedef SDF value_type;
-  static inline value_type empty(){ return {1.f, -1.f}; }
-  static inline value_type initValue(){ return {1.f, 0.f}; }
+  static inline value_type empty(){ return {1.f, -1.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
+  static inline value_type initValue(){ return {1.f, 0.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
 };
 
 /******************************************************************************
@@ -59,6 +65,12 @@ struct voxel_traits<SDF> {
 typedef struct {
     float x;
     double y;
+    float r;
+    float g;
+    float b;
+    int cw;       // color wighting
+    double fg;    // foreground probability
+    int v;        // foreground votes
 } OFusion;
 
 template<>
@@ -66,9 +78,15 @@ struct voxel_traits<OFusion> {
   typedef struct  {
     float x;
     double y;
+      float r;
+      float g;
+      float b;
+      int cw;       // color wighting
+      double fg;    // foreground probability
+      int v;        // foreground votes
   } value_type;
-  static inline value_type empty(){ return {0.f, 0.f}; }
-  static inline value_type initValue(){ return {0.f, 0.f}; }
+  static inline value_type empty(){ return {0.f, 0.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
+  static inline value_type initValue(){ return {0.f, 0.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
 };
 
 // Windowing parameters
