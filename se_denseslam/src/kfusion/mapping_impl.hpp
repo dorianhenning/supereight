@@ -51,22 +51,27 @@ struct sdf_update {
             data.y = fminf(data.y + 1, maxweight);
 
             // color information
-            const float3 rgb_measured = rgb[px(0) + depthSize(0)*px(1)];
-            data.r = clamp((data.w * data.r) / (data.w + 1), 0.f, 1.f);// * 255;
-            data.g = clamp((data.w * data.g) / (data.w + 1), 0.f, 1.f);// * 255;
-            data.b = clamp((data.w * data.b) / (data.w + 1), 0.f, 1.f);// * 255;
-            data.w = fminf(data.w + 1, maxweight);
+//            const Eigen::Vector3f rgb_measured = rgb_[px(0) + depthSize(0)*px(1)];
+//            data.r = clamp((rgb_measured(0) + data.w * data.r) / (data.w + 1), 0.f, 1.f);// * 255;
+//            data.g = clamp((rgb_measured(1) + data.w * data.g) / (data.w + 1), 0.f, 1.f);// * 255;
+//            data.b = clamp((rgb_measured(2) + data.w * data.b) / (data.w + 1), 0.f, 1.f);// * 255;
+//            data.w = fminf(data.w + 1, maxweight);
             // data.w += 1; // not sure which one to take, but fminf seems reasonable
 
             handler.set(data);
     }
   } 
 
+    // grey version
     sdf_update(const float * d, const Eigen::Vector2i framesize, float m, int mw) :
             depth(d), depthSize(framesize), mu(m), maxweight(mw){};
 
+    // color version
+//    sdf_update(const float * d, const Eigen::Vector3f * rgb, const Eigen::Vector2i framesize, float m, int mw) :
+//            depth(d), rgb_(rgb), depthSize(framesize), mu(m), maxweight(mw){};
+
     const float * depth;
-    const float3 * rgb;
+    const Eigen::Vector3f * rgb_;
     Eigen::Vector2i depthSize;
     float mu;
     int maxweight;

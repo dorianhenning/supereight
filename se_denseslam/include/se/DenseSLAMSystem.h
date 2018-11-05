@@ -245,6 +245,16 @@ class DenseSLAMSystem {
                       float4      k,
                       float       mu);
 
+    /*
+     * TODO Implement this.
+     */
+    void renderVolumeColor(uchar4 *    out,
+                           const uint2 outputSize,
+                           int         frame,
+                           int         rate,
+                           float4      k,
+                           float       mu);
+
     /**
      * Render the output of the tracking algorithm. The meaning of the colors is as follows:
      * | Color  | Meaning |

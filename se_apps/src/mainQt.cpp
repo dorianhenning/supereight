@@ -38,6 +38,7 @@ static uchar3 * inputRGB = NULL;
 static uchar4 * depthRender = NULL;
 static uchar4 * trackRender = NULL;
 static uchar4 * volumeRender = NULL;
+static uchar4 * volumeRenderColor = NULL;
 static DepthReader *reader = NULL;
 static DenseSLAMSystem *pipeline = NULL;
 
@@ -106,15 +107,17 @@ int main(int argc, char ** argv) {
 	// Construction Scene reader and input buffer
 	//we could allocate a more appropriate amount of memory (less) but this makes life hard if we switch up resolution later;
 	inputDepth = 
-        (uint16_t*) malloc(sizeof(uint16_t) * inputSize.x*inputSize.y);
+            (uint16_t*) malloc(sizeof(uint16_t) * inputSize.x*inputSize.y);
 	inputRGB = 
-        (uchar3*) malloc(sizeof(uchar3) * inputSize.x*inputSize.y);
+            (uchar3*) malloc(sizeof(uchar3) * inputSize.x*inputSize.y);
 	depthRender = 
-        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
+            (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 	trackRender = 
-        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
+            (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 	volumeRender = 
-        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
+            (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
+    volumeRenderColor =
+            (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 
 	init_pose = config.initial_pos_factor * config.volume_size;
 	pipeline = new DenseSLAMSystem(computationSize, config.volume_resolution,
@@ -262,6 +265,9 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
 				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
 				config->rendering_rate, camera, 0.75 * config->mu);
+//        pipeline->renderVolumeColor(volumeRender, pipeline->getComputationResolution(),
+//                (processFrame ? reader->getFrameNumber() - frameOffset : 0),
+//                config->rendering_rate, camera, 0.75 * config->mu);
 		timings[6] = std::chrono::steady_clock::now();
 	}
 

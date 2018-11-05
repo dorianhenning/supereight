@@ -304,16 +304,29 @@ void DenseSLAMSystem::dump_volume(std::string ) {
 }
 
 void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
-		int raycast_rendering_rate, float4 k, float largestep) {
-	if (frame % raycast_rendering_rate == 0) {
-    const float step = volume_dimension_.x / volume_resolution_.x;
-		renderVolumeKernel(volume_, out, outputSize,
-	*(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
-	farPlane * 2.0f, mu_, step, largestep,
-        get_translation(*(this->viewPose_)), ambient,
-        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(), 
-        normal_.data());
-  }
+                                   int raycast_rendering_rate, float4 k, float largestep) {
+    if (frame % raycast_rendering_rate == 0) {
+        const float step = volume_dimension_.x / volume_resolution_.x;
+        renderVolumeKernel(volume_, out, outputSize,
+                           *(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
+                           farPlane * 2.0f, mu_, step, largestep,
+                           get_translation(*(this->viewPose_)), ambient,
+                           !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(),
+                           normal_.data());
+    }
+}
+
+void DenseSLAMSystem::renderVolumeColor(uchar4 * out, uint2 outputSize, int frame,
+                                        int raycast_rendering_rate, float4 k, float largestep) {
+    if (frame % raycast_rendering_rate == 0) {
+        const float step = volume_dimension_.x / volume_resolution_.x;
+        renderVolumeKernel(volume_, out, outputSize,
+                           *(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
+                           farPlane * 2.0f, mu_, step, largestep,
+                           get_translation(*(this->viewPose_)), ambient,
+                           !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(),
+                           normal_.data());
+    }
 }
 
 void DenseSLAMSystem::renderTrack(uchar4 * out, uint2 outputSize) {
