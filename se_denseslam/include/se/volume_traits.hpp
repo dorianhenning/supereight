@@ -39,15 +39,21 @@
 ****************************************************************************/
 
 typedef struct {
-  float x;
-  float y;
+    float x;
+    float y;
+    float r;
+    float g;
+    float b;
+    int w;        // color votes
+    double fg;    // foreground probability -> not yet implemented but important for Charlie
+    int fw;       // foreground witness
 } SDF;
 
 template<>
 struct voxel_traits<SDF> {
   typedef SDF value_type;
-  static inline value_type empty(){ return {1.f, -1.f}; }
-  static inline value_type initValue(){ return {1.f, 0.f}; }
+  static inline value_type empty(){ return {1.f, -1.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
+  static inline value_type initValue(){ return {1.f, 0.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
 };
 
 /******************************************************************************
@@ -59,6 +65,12 @@ struct voxel_traits<SDF> {
 typedef struct {
     float x;
     double y;
+    float r;
+    float g;
+    float b;
+    int w;        // color votes
+    double fg;    // foreground probability
+    int fw;       // foreground witness} OFusion;
 } OFusion;
 
 template<>
@@ -66,9 +78,15 @@ struct voxel_traits<OFusion> {
   typedef struct  {
     float x;
     double y;
+    float r;
+    float g;
+    float b;
+    int w;        // color votes
+    double fg;    // foreground probability
+    int fw;       // foreground witness} OFusion;
   } value_type;
-  static inline value_type empty(){ return {0.f, 0.f}; }
-  static inline value_type initValue(){ return {0.f, 0.f}; }
+  static inline value_type empty(){ return {0.f, 0.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
+  static inline value_type initValue(){ return {0.f, 0.f, 0.f, 0.f, 0.f, 0, 0.f, 0}; }
 };
 
 // Windowing parameters
