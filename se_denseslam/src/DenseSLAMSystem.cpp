@@ -223,49 +223,49 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 	bool doIntegrate = poses.empty() ? checkPoseKernel(pose_, old_pose_, 
       reduction_output_.data(), computation_size_, track_threshold) : true;
 
-  if ((doIntegrate && ((frame % integration_rate) == 0)) || (frame <= 3)) {
+    if ((doIntegrate && ((frame % integration_rate) == 0)) || (frame <= 3)) {
 
-    float voxelsize =  volume_._dim/volume_._size;
-    int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
-    size_t total = num_vox_per_pix * computation_size_.x * computation_size_.y;
-    allocation_list_.reserve(total);
+        float voxelsize =  volume_._dim/volume_._size;
+        int num_vox_per_pix = volume_._dim/((se::VoxelBlock<FieldType>::side)*voxelsize);
+        size_t total = num_vox_per_pix * computation_size_.x * computation_size_.y;
+        allocation_list_.reserve(total);
 
-    unsigned int allocated = 0;
-    if(std::is_same<FieldType, SDF>::value) {
-     allocated  = buildAllocationList(allocation_list_.data(), 
-         allocation_list_.capacity(),
-        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(), 
-        computation_size_, volume_._size,
-      voxelsize, 2*mu);  
-    } else if(std::is_same<FieldType, OFusion>::value) {
-     allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(), 
-         *volume_._map_index,
-         pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-         compute_stepsize, step_to_depth, 6*mu);  
-    }
+        unsigned int allocated = 0;
+        if(std::is_same<FieldType, SDF>::value) {
+            allocated  = buildAllocationList(allocation_list_.data(),
+                    allocation_list_.capacity(),
+                    *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
+                    computation_size_, volume_._size,
+                    voxelsize, 2*mu);
+        } else if(std::is_same<FieldType, OFusion>::value) {
+            allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
+                    *volume_._map_index,
+                    pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
+                    compute_stepsize, step_to_depth, 6*mu);
+        }
 
-    volume_._map_index->allocate(allocation_list_.data(), allocated);
+        volume_._map_index->allocate(allocation_list_.data(), allocated);
 
-    if(std::is_same<FieldType, SDF>::value) {
-      struct sdf_update funct(float_depth_.data(),
-          Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
-      se::functor::projective_map(*volume_._map_index,
-          to_sophus(pose_).inverse(),
-          to_eigen(getCameraMatrix(k)), 
-          Eigen::Vector2i(computation_size_.x, computation_size_.y),
-          funct);
-    } else if(std::is_same<FieldType, OFusion>::value) {
+        if(std::is_same<FieldType, SDF>::value) {
+            struct sdf_update funct(float_depth_.data(),
+                    Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
+            se::functor::projective_map(*volume_._map_index,
+                    to_sophus(pose_).inverse(),
+                    to_eigen(getCameraMatrix(k)),
+                    Eigen::Vector2i(computation_size_.x, computation_size_.y),
+                    funct);
+        } else if(std::is_same<FieldType, OFusion>::value) {
 
-      float timestamp = (1.f/30.f)*frame; 
-      struct bfusion_update funct(float_depth_.data(),
-          Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, timestamp);
+            float timestamp = (1.f/30.f)*frame;
+            struct bfusion_update funct(float_depth_.data(),
+                    Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, timestamp);
 
-      se::functor::projective_map(*volume_._map_index,
-          to_sophus(pose_).inverse(),
-          to_eigen(getCameraMatrix(k)), 
-          Eigen::Vector2i(computation_size_.x, computation_size_.y),
-          funct);
-    }
+            se::functor::projective_map(*volume_._map_index,
+                    to_sophus(pose_).inverse(),
+                    to_eigen(getCameraMatrix(k)),
+                    Eigen::Vector2i(computation_size_.x, computation_size_.y),
+                    funct);
+        }
 
     // if(frame % 15 == 0) {
     //   std::stringstream f;
@@ -290,9 +290,9 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
     //     }, // end lambda
     //     make_int3(0, volume_._size/2, 0),
     //     make_int3(volume_._size, volume_._size/2 + 1, volume_._size), make_int3(volume_._size), f.str().c_str());
-    doIntegrate = true;
+        doIntegrate = true;
   } else {
-    doIntegrate = false;
+        doIntegrate = false;
   }
 
 	return doIntegrate;

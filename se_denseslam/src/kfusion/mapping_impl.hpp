@@ -51,12 +51,14 @@ struct sdf_update {
             data.y = fminf(data.y + 1, maxweight);
 
             // color information
-//            const Eigen::Vector3f rgb_measured = rgb_[px(0) + depthSize(0)*px(1)];
-//            data.r = clamp((rgb_measured(0) + data.w * data.r) / (data.w + 1), 0.f, 1.f);// * 255;
-//            data.g = clamp((rgb_measured(1) + data.w * data.g) / (data.w + 1), 0.f, 1.f);// * 255;
-//            data.b = clamp((rgb_measured(2) + data.w * data.b) / (data.w + 1), 0.f, 1.f);// * 255;
-//            data.w = fminf(data.w + 1, maxweight);
-            // data.w += 1; // not sure which one to take, but fminf seems reasonable
+            if (rgb_ != nullptr) {
+                const Eigen::Vector3f rgb_measured = rgb_[px(0) + depthSize(0)*px(1)];
+                data.r = clamp((rgb_measured(0) + data.w * data.r) / (data.w + 1), 0.f, 1.f);// * 255;
+                data.g = clamp((rgb_measured(1) + data.w * data.g) / (data.w + 1), 0.f, 1.f);// * 255;
+                data.b = clamp((rgb_measured(2) + data.w * data.b) / (data.w + 1), 0.f, 1.f);// * 255;
+                data.w = fminf(data.w + 1, maxweight);
+                // data.w += 1; // not sure which one to take, but fminf seems reasonable
+            }
 
             handler.set(data);
     }
@@ -64,11 +66,12 @@ struct sdf_update {
 
     // grey version
     sdf_update(const float * d, const Eigen::Vector2i framesize, float m, int mw) :
-            depth(d), depthSize(framesize), mu(m), maxweight(mw){};
+            depth(d), rgb_(nullptr), depthSize(framesize), mu(m), maxweight(mw){};
 
+    // TODO: SDF update fix
     // color version
-//    sdf_update(const float * d, const Eigen::Vector3f * rgb, const Eigen::Vector2i framesize, float m, int mw) :
-//            depth(d), rgb_(rgb), depthSize(framesize), mu(m), maxweight(mw){};
+    sdf_update(const float * d, const Eigen::Vector3f * rgb, const Eigen::Vector2i framesize, float m, int mw) :
+            depth(d), rgb_(rgb), depthSize(framesize), mu(m), maxweight(mw){};
 
     const float * depth;
     const Eigen::Vector3f * rgb_;
