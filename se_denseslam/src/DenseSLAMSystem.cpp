@@ -67,6 +67,8 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
   vertex_(computation_size_.x, computation_size_.y),
   normal_(computation_size_.x, computation_size_.y),
   float_depth_(computation_size_.x, computation_size_.y),
+  input_rgb_(computation_size_.x, computation_size_.y),
+  input_grey_(computation_size_.x, computation_size_.y),
   tracking_result_(computation_size_.x, computation_size_.y) {
 
     this->init_pose_ = getPosition();
@@ -123,8 +125,8 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
         discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize, 
-    const bool filterInput){
+bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 inputSize,
+        const bool filterInput) {
 
     mm2metersKernel(float_depth_.data(), computation_size_, inputDepth, inputSize);
     if(filterInput){
@@ -136,6 +138,22 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 input
           sizeof(float) * computation_size_.x * computation_size_.y);
     }
 	return true;
+}
+
+bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uchar3 * inputRGB,
+        const uint2 inputSize, const bool filterInput) {
+
+//    rgb2intensityKernel(input_grey_.data(), input_rgb_.data(), computation_size_, inputRGB, inputSize);
+    mm2metersKernel(float_depth_.data(), computation_size_, inputDepth, inputSize);
+    if(filterInput){
+        bilateralFilterKernel(scaled_depth_[0].data(), float_depth_.data(),
+                              computation_size_, gaussian_.data(), e_delta, radius);
+    }
+    else {
+        std::memcpy(scaled_depth_[0].data(), float_depth_.data(),
+                    sizeof(float) * computation_size_.x * computation_size_.y);
+    }
+    return true;
 }
 
 bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate,
@@ -232,7 +250,7 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
 
         unsigned int allocated = 0;
         if(std::is_same<FieldType, SDF>::value) {
-            allocated  = buildAllocationList(allocation_list_.data(),
+            allocated = buildAllocationList(allocation_list_.data(),
                     allocation_list_.capacity(),
                     *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
                     computation_size_, volume_._size,
