@@ -31,7 +31,6 @@
 #ifndef KFUSION_MAPPING_HPP
 #define KFUSION_MAPPING_HPP
 #include <se/node.hpp>
-//#include "opencv2/opencv.hpp"
 
 struct sdf_update {
 
@@ -47,22 +46,9 @@ struct sdf_update {
     if (diff > -mu) {
       const float sdf = fminf(1.f, diff / mu);
       auto data = handler.get();
-      // TSDF
-      data.x = clamp((data.y * data.x + sdf) / (data.y + 1), -1.f, 1.f);
+      data.x = clamp((data.y * data.x + sdf) / (data.y + 1), -1.f,
+          1.f);
       data.y = fminf(data.y + 1, maxweight);
-
-      // color
-      const Eigen::Vector3f rgb_measured = rgb[px(0) + depthSize(0)*px(1)];
-      data.r = (rgb_measured(0) + data.r * data.cw)/(data.cw + 1);
-      data.g = (rgb_measured(0) + data.g * data.cw)/(data.cw + 1);
-      data.b = (rgb_measured(0) + data.b * data.cw)/(data.cw + 1);
-      data.cw ++;
-
-      // foreground probability
-//      const float fg_measured = mast.at<float>(px(1), px(0));   // Eigen to OpenCV conversion
-//      data.fg = (fg_measured + data.fg  data.w)/(data.v + 1);
-//      data.v ++;
-
       handler.set(data);
     }
   } 
@@ -71,8 +57,6 @@ struct sdf_update {
     depth(d), depthSize(framesize), mu(m), maxweight(mw){};
 
   const float * depth;
-  const Eigen::Vector3f * rgb;
-//  const cv::Mat mask;
   Eigen::Vector2i depthSize;
   float mu;
   int maxweight;
