@@ -54,7 +54,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
           }
           if (f_tt > SURF_BOUNDARY) break;
           f_t = f_tt;
-      }            
+      }
       if (f_tt > SURF_BOUNDARY) {
         // got it, calculate accurate intersection
         t = t - stepsize * (f_tt - SURF_BOUNDARY) / (f_tt - f_t);
