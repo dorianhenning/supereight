@@ -87,8 +87,8 @@ class DenseSLAMSystem {
     std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
     std::vector<se::Image<Eigen::Vector3f> > input_normal_;
     se::Image<float> float_depth_;
-    se::Image<Eigen::Vector3f> input_rgb_;
-    se::Image<float> input_grey_; // for intensity of color
+    se::Image<Eigen::Vector3f> float_rgb_;
+    se::Image<float> float_grey_; // for intensity of color
 //    se::Image<TrackData>  tracking_result_;
     std::vector<TrackData>  tracking_result_;
     Matrix4 old_pose_;

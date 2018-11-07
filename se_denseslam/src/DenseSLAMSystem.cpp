@@ -68,10 +68,9 @@ DenseSLAMSystem::DenseSLAMSystem(uint2 inputSize, uint3 volumeResolution,
   normal_(computation_size_.x, computation_size_.y),
 
   float_depth_(computation_size_.x, computation_size_.y),
-  input_rgb_(computation_size_.x, computation_size_.y),
-  input_grey_(computation_size_.x, computation_size_.y)//,
-//  tracking_result_(computation_size_.x, computation_size_.y) {
-//  float_depth_(computation_size_.x, computation_size_.y)
+  float_rgb_(computation_size_.x, computation_size_.y),
+  float_grey_(computation_size_.x, computation_size_.y)//,
+//  tracking_result_(computation_size_.x, computation_size_.y)
   {
 
     this->init_pose_ = getPosition();
@@ -147,7 +146,7 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uint2 input
 bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uchar3 * inputRGB,
         const uint2 inputSize, const bool filterInput) {
 
-//    rgb2intensityKernel(input_grey_.data(), input_rgb_.data(), computation_size_, inputRGB, inputSize);
+    rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, Eigen::Vector2i(inputSize.x, inputSize.y));
     mm2metersKernel(float_depth_, inputDepth, Eigen::Vector2i(inputSize.x, inputSize.y));
     if(filterInput){
         bilateralFilterKernel(scaled_depth_[0], float_depth_,
@@ -325,26 +324,26 @@ void DenseSLAMSystem::renderVolume(uchar4 * out, uint2 outputSize, int frame,
     if (frame % raycast_rendering_rate == 0) {
         const float step = volume_dimension_.x / volume_resolution_.x;
         renderVolumeKernel(volume_, out, outputSize,
-                to_eigen(*(this->viewPose_) * getInverseCameraMatrix(k)), nearPlane,
-                farPlane * 2.0f, mu_, step, largestep,
-        to_eigen(*(this->viewPose_)).topRightCorner<3, 1>(), ambient,
-        !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_,
-        normal_);
+                           to_eigen(*(this->viewPose_) * getInverseCameraMatrix(k)), nearPlane,
+                           farPlane * 2.0f, mu_, step, largestep,
+                           to_eigen(*(this->viewPose_)).topRightCorner<3, 1>(), ambient,
+                           !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_,
+                           normal_);
     }
 }
 
-//void DenseSLAMSystem::renderVolumeColor(uchar4 * out, uint2 outputSize, int frame,
-//                                        int raycast_rendering_rate, float4 k, float largestep) {
-//    if (frame % raycast_rendering_rate == 0) {
-//        const float step = volume_dimension_.x / volume_resolution_.x;
-//        renderVolumeKernel(volume_, out, outputSize,
-//                           *(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
-//                           farPlane * 2.0f, mu_, step, largestep,
-//                           get_translation(*(this->viewPose_)), ambient,
-//                           !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_.data(),
-//                           normal_.data());
-//    }
-//}
+void DenseSLAMSystem::renderVolumeColor(uchar4 * out, uint2 outputSize, int frame,
+                                        int raycast_rendering_rate, float4 k, float largestep) {
+    if (frame % raycast_rendering_rate == 0) {
+        const float step = volume_dimension_.x / volume_resolution_.x;
+        renderVolumeKernelColor(volume_, out, outputSize,
+                                to_eigen(*(this->viewPose_) * getInverseCameraMatrix(k)), nearPlane,
+                                farPlane * 2.0f, mu_, step, largestep,
+                                to_eigen(*(this->viewPose_)).topRightCorner<3, 1>(), ambient,
+                                !compareMatrix4(*(this->viewPose_), raycast_pose_), vertex_,
+                                normal_);
+    }
+}
 
 void DenseSLAMSystem::renderTrack(uchar4 * out, uint2 outputSize) {
         renderTrackKernel(out, tracking_result_.data(), outputSize);

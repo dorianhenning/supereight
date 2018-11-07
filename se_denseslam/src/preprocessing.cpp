@@ -88,7 +88,7 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 		TOCK("bilateralFilterKernel", width * height);
 }
 
-  void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex, 
+void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
                          const se::Image<float>& depth,
                          const Eigen::Matrix4f invK) {
 	TICK();
@@ -152,8 +152,9 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
 	TOCK("vertex2normalKernel", width * height);
 }
 
-void mm2metersKernel(se::Image<float> out, const ushort* in, 
-    const Eigen::Vector2i& inputSize) {
+void mm2metersKernel(se::Image<float> out,
+					 const ushort * in,
+					 const Eigen::Vector2i& inputSize) {
 	TICK();
 	// Check for unsupported conditions
 	if ((inputSize.x() < out.width()) || inputSize.y() < out.height()) {
@@ -217,4 +218,42 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
 		}
 	}
 	TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
+}
+
+float rgb2GreyScale(const uchar3& rgb) {
+    return (0.2989f * rgb.x + 0.5870f * rgb.y + 0.1140f * rgb.z) / 255.0f;
+}
+
+void rgb2intensityKernel(se::Image<float> outputGrey,
+				         se::Image<Eigen::Vector3f> outputRGB,
+				         const uchar3 * inputRGB,
+				         const Eigen::Vector2i& inputSize) {
+	TICK();
+	// Check for unsupported conditions
+	if ((inputSize.x() < outputRGB.width()) || inputSize.y() < outputRGB.height()) {
+		std::cerr << "Invalid ratio." << std::endl;
+		exit(1);
+	}
+	if ((inputSize.x() % outputRGB.width() != 0) || (inputSize.y() % outputRGB.height() != 0)) {
+		std::cerr << "Invalid ratio." << std::endl;
+		exit(1);
+	}
+	if ((inputSize.x() / outputRGB.width() != inputSize.y() / outputRGB.height())) {
+		std::cerr << "Invalid ratio." << std::endl;
+		exit(1);
+	}
+
+	int ratio = inputSize.x() / outputRGB.width();
+	int y;
+#pragma omp parallel for \
+        shared(outputGrey, outputRGB), private(y)
+	for (y = 0; y < outputRGB.height(); y++)
+		for (int x = 0; x < outputRGB.width(); x++) {
+            const uchar3 rgb_resized = inputRGB[x * ratio + inputSize.x() * y * ratio];
+			outputRGB[x + outputRGB.width() * y].x() = rgb_resized.x / 255.0f;
+			outputRGB[x + outputRGB.width() * y].y() = rgb_resized.y / 255.0f;
+			outputRGB[x + outputRGB.width() * y].z() = rgb_resized.z / 255.0f;
+			outputGrey[x + outputGrey.width() * y] = rgb2GreyScale(rgb_resized);
+		}
+TOCK("rgb2intensity", outSize.x * outSize.y);
 }
