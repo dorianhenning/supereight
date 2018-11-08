@@ -69,8 +69,8 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 
 				for (int i = -r; i <= r; ++i) {
 					for (int j = -r; j <= r; ++j) {
-            Eigen::Vector2i curPos = Eigen::Vector2i(clamp(x + i, 0, width - 1),
-								clamp(y + j, 0, height - 1));
+                        Eigen::Vector2i curPos = Eigen::Vector2i(clamp(x + i, 0, width - 1),
+                                clamp(y + j, 0, height - 1));
 						const float curPix = in[curPos.x() + curPos.y()* width];
 						if (curPix > 0) {
 							const float mod = sq(curPix - center);
@@ -113,10 +113,10 @@ void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
 template <bool NegY>
 void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out, 
                          const se::Image<Eigen::Vector3f>& in) {
-	TICK();
-	int x, y;
-  int width = in.width();
-  int height = in.height();
+    TICK();
+    int x, y;
+    int width = in.width();
+    int height = in.height();
 #pragma omp parallel for \
         shared(out), private(x,y)
 	for (y = 0; y < height; y++) {
@@ -125,15 +125,15 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
 			const Eigen::Vector2i pright = Eigen::Vector2i(min(x + 1, (int) width - 1),
 					y);
 
-      // Swapped to match the left-handed coordinate system of ICL-NUIM
-      Eigen::Vector2i pup, pdown;
-      if(NegY) {
-        pup = Eigen::Vector2i(x, max(int(y) - 1, 0));
-        pdown = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
-      } else {
-        pdown = Eigen::Vector2i(x, max(int(y) - 1, 0));
-        pup = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
-      }
+            // Swapped to match the left-handed coordinate system of ICL-NUIM
+            Eigen::Vector2i pup, pdown;
+            if(NegY) {
+                pup = Eigen::Vector2i(x, max(int(y) - 1, 0));
+                pdown = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
+            } else {
+                pdown = Eigen::Vector2i(x, max(int(y) - 1, 0));
+                pup = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
+            }
 
 			const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
 			const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
@@ -195,7 +195,7 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
         shared(out), private(y)
 	for (y = 0; y < out.height(); y++) {
 		for (int x = 0; x < out.width(); x++) {
-      Eigen::Vector2i pixel = Eigen::Vector2i(x, y);
+            Eigen::Vector2i pixel = Eigen::Vector2i(x, y);
 			const Eigen::Vector2i centerPixel = 2 * pixel;
 
 			float sum = 0.0f;
@@ -203,10 +203,10 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
 			const float center = in[centerPixel.x() + centerPixel.y() * in.width()];
 			for (int i = -r + 1; i <= r; ++i) {
 				for (int j = -r + 1; j <= r; ++j) {
-          Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i); 
-          clamp(cur, 
-                Eigen::Vector2i::Constant(0), 
-                Eigen::Vector2i(2 * out.width() - 1, 2 * out.height() - 1));
+                    Eigen::Vector2i cur = centerPixel + Eigen::Vector2i(j, i);
+                    clamp(cur,
+                            Eigen::Vector2i::Constant(0),
+                            Eigen::Vector2i(2 * out.width() - 1, 2 * out.height() - 1));
 					float current = in[cur.x() + cur.y() * in.width()];
 					if (fabsf(current - center) < e_d) {
 						sum += 1.0f;

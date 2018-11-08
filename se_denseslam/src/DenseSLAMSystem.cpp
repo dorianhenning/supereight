@@ -160,19 +160,19 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth, const uchar3 * in
 }
 
 bool DenseSLAMSystem::tracking(float4 k, float icp_threshold, uint tracking_rate,
-		uint frame) {
+                               uint frame) {
 
-	if (frame % tracking_rate != 0)
-		return false;
+    if (frame % tracking_rate != 0)
+        return false;
 
-  if(!poses.empty()) {
-    old_pose_ = this->pose_;
-    this->pose_ = poses[frame];
-    this->pose_.data[0].w = (this->pose_.data[0].w - poses[0].data[0].w) + this->init_pose_.x;
-    this->pose_.data[1].w = (this->pose_.data[1].w - poses[0].data[1].w) + this->init_pose_.y;
-    this->pose_.data[2].w = (this->pose_.data[2].w - poses[0].data[2].w) + this->init_pose_.z;
-    return true;
-  }
+    if(!poses.empty()) {
+        old_pose_ = this->pose_;
+        this->pose_ = poses[frame];
+        this->pose_.data[0].w = (this->pose_.data[0].w - poses[0].data[0].w) + this->init_pose_.x;
+        this->pose_.data[1].w = (this->pose_.data[1].w - poses[0].data[1].w) + this->init_pose_.y;
+        this->pose_.data[2].w = (this->pose_.data[2].w - poses[0].data[2].w) + this->init_pose_.z;
+        return true;
+    }
 
 	// half sample the input depth maps into the pyramid levels
 	for (unsigned int i = 1; i < iterations_.size(); ++i) {
@@ -263,13 +263,24 @@ bool DenseSLAMSystem::integration(float4 k, uint integration_rate, float mu,
         volume_._map_index->allocate(allocation_list_.data(), allocated);
 
         if(std::is_same<FieldType, SDF>::value) {
-            struct sdf_update funct(float_depth_.data(),
-                                    Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
-            se::functor::projective_map(*volume_._map_index,
-                                        to_sophus(pose_).inverse(),
-                                        to_eigen(getCameraMatrix(k)),
-                                        Eigen::Vector2i(computation_size_.x, computation_size_.y),
-                                        funct);
+            if (render_color_) {
+                struct sdf_update funct(float_depth_.data(), float_rgb_.data(),
+                        Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
+                se::functor::projective_map(*volume_._map_index,
+                                            to_sophus(pose_).inverse(),
+                                            to_eigen(getCameraMatrix(k)),
+                                            Eigen::Vector2i(computation_size_.x, computation_size_.y),
+                                            funct);
+            } else {
+                struct sdf_update funct(float_depth_.data(),
+                        Eigen::Vector2i(computation_size_.x, computation_size_.y), mu, 100);
+                se::functor::projective_map(*volume_._map_index,
+                                            to_sophus(pose_).inverse(),
+                                            to_eigen(getCameraMatrix(k)),
+                                            Eigen::Vector2i(computation_size_.x, computation_size_.y),
+                                            funct);
+            }
+
         } else if(std::is_same<FieldType, OFusion>::value) {
 
             float timestamp = (1.f/30.f)*frame;

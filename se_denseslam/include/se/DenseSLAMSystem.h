@@ -70,6 +70,11 @@ class DenseSLAMSystem {
     bool need_render_ = false;
     Configuration config_;
 
+    // color integration
+    bool render_color_ = true;
+
+    // segmentation
+
     // input once
     std::vector<float> gaussian_;
 
