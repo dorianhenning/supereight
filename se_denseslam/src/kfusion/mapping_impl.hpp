@@ -35,8 +35,10 @@
 struct sdf_update {
 
     template <typename DataHandlerT>
-    void operator()(DataHandlerT& handler, const Eigen::Vector3i&,
-            const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
+    void operator()(DataHandlerT& handler,
+                    const Eigen::Vector3i&,
+                    const Eigen::Vector3f& pos,
+                    const Eigen::Vector2f& pixel) {
 
         const Eigen::Vector2i px = pixel.cast<int>();
         const float depthSample = depth[px(0) + depthSize(0)*px(1)];
@@ -61,17 +63,31 @@ struct sdf_update {
             }
 
             handler.set(data);
+        }
     }
-  } 
 
     // grey version
-    sdf_update(const float * d, const Eigen::Vector2i framesize, float m, int mw) :
-            depth(d), rgb_(nullptr), depthSize(framesize), mu(m), maxweight(mw){};
+    sdf_update(const float * d,
+               const Eigen::Vector2i framesize,
+               float m,
+               int mw)
+        : depth(d),
+          rgb_(nullptr),
+          depthSize(framesize),
+          mu(m),
+          maxweight(mw) {};
 
-    // TODO: SDF update fix
     // color version
-    sdf_update(const float * d, const Eigen::Vector3f * rgb, const Eigen::Vector2i framesize, float m, int mw) :
-            depth(d), rgb_(rgb), depthSize(framesize), mu(m), maxweight(mw){};
+    sdf_update(const float * d,
+               const Eigen::Vector3f * rgb,
+               const Eigen::Vector2i framesize,
+               float m,
+               int mw)
+        : depth(d),
+          rgb_(rgb),
+          depthSize(framesize),
+          mu(m),
+          maxweight(mw) {};
 
     const float * depth;
     const Eigen::Vector3f * rgb_;
@@ -80,4 +96,4 @@ struct sdf_update {
     int maxweight;
 };
 
-#endif
+#endif //KFUSION_MAPPING_HPP

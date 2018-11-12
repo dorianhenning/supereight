@@ -44,6 +44,7 @@ list(APPEND BUILT_LIBS ${appname}-ofusion)
 set(field_type SE_FIELD_TYPE=SDF)
 
 add_library(${appname}-sdf  ./src/DenseSLAMSystem.cpp)
+#add_library(${appname}-sdf  ./src/ObjectMappingSystem.cpp)
 target_include_directories(${appname}-sdf PUBLIC include
     ${TOON_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR} ${SOPHUS_INCLUDE_DIR})
 target_compile_options(${appname}-sdf PUBLIC ${compile_flags})

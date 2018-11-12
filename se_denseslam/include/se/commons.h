@@ -72,6 +72,7 @@
 #define INVALID -2
 // DATA TYPE
 //
+typedef Eigen::Matrix<float, 1, 80> ProbVector;
 
 inline
 bool is_file(std::string path) {

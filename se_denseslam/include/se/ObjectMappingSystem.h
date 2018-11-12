@@ -16,6 +16,7 @@
 #include <se/image/image.hpp>
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
+#include "object/Object.h"
 
 /*
  * Use SE_FIELD_TYPE macro to define the ObjectMappingSystem instance
@@ -44,7 +45,8 @@ private:
     bool render_color_ = true;
 
     // segmentation
-    Object * objectList = new Object();
+    ObjectList objectList_;
+    ObjectPointer backgroundObject_;
 
     // input once
     std::vector<float> gaussian_;

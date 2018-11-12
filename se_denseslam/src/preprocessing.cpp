@@ -39,8 +39,11 @@
 #include <functional>
 #include <se/image/image.hpp>
 
-void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
-		const std::vector<float>& gaussian, float e_d, int r) {
+void bilateralFilterKernel(se::Image<float>&         out,
+                           const se::Image<float>&   in,
+                           const std::vector<float>& gaussian,
+                           float                     e_d,
+                           int                       r) {
 
 	if ((in.width() != out.width()) || in.height() != out.height()) {
 		std::cerr << "input/output image sizes differ." << std::endl;
@@ -89,8 +92,8 @@ void bilateralFilterKernel(se::Image<float>& out, const se::Image<float>& in,
 }
 
 void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
-                         const se::Image<float>& depth,
-                         const Eigen::Matrix4f invK) {
+                        const se::Image<float>&     depth,
+                        const Eigen::Matrix4f       invK) {
 	TICK();
 	int x, y;
 #pragma omp parallel for \
@@ -111,7 +114,7 @@ void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
 }
 
 template <bool NegY>
-void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out, 
+void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
                          const se::Image<Eigen::Vector3f>& in) {
     TICK();
     int x, y;
@@ -152,8 +155,8 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&  out,
 	TOCK("vertex2normalKernel", width * height);
 }
 
-void mm2metersKernel(se::Image<float> out,
-					 const ushort * in,
+void mm2metersKernel(se::Image<float>       out,
+                     const ushort *         in,
 					 const Eigen::Vector2i& inputSize) {
 	TICK();
 	// Check for unsupported conditions
@@ -182,9 +185,10 @@ void mm2metersKernel(se::Image<float> out,
 	TOCK("mm2metersKernel", outSize.x * outSize.y);
 }
 
-void halfSampleRobustImageKernel(se::Image<float>& out, 
+void halfSampleRobustImageKernel(se::Image<float>&      out,
                                 const se::Image<float>& in,
-                                const float e_d, const int r) {
+                                const float             e_d,
+                                const int               r) {
 	if ((in.width() / out.width() != 2) || ( in.height() / out.height() != 2)) {
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
@@ -224,10 +228,10 @@ float rgb2GreyScale(const uchar3& rgb) {
     return (0.2989f * rgb.x + 0.5870f * rgb.y + 0.1140f * rgb.z) / 255.0f;
 }
 
-void rgb2intensityKernel(se::Image<float> outputGrey,
+void rgb2intensityKernel(se::Image<float>           outputGrey,
 				         se::Image<Eigen::Vector3f> outputRGB,
-				         const uchar3 * inputRGB,
-				         const Eigen::Vector2i& inputSize) {
+				         const uchar3 *             inputRGB,
+				         const Eigen::Vector2i&     inputSize) {
 	TICK();
 	// Check for unsupported conditions
 	if ((inputSize.x() < outputRGB.width()) || inputSize.y() < outputRGB.height()) {
@@ -238,7 +242,7 @@ void rgb2intensityKernel(se::Image<float> outputGrey,
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
 	}
-	if ((inputSize.x() / outputRGB.width() != inputSize.y() / outputRGB.height())) {
+	if (inputSize.x() / outputRGB.width() != inputSize.y() / outputRGB.height()) {
 		std::cerr << "Invalid ratio." << std::endl;
 		exit(1);
 	}
