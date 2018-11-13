@@ -5,6 +5,8 @@
 #ifndef SUPEREIGHT_OBJECT_H
 #define SUPEREIGHT_OBJECT_H
 
+#include <se/commons.h>
+#include <se/image/image.hpp>
 #include "math_utils.h"
 
 /*
@@ -24,17 +26,18 @@ class Object {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    Object(const int              voxelBlockSize,
-           const Eigen::Vector3f& volumeSize,
-           const Eigen::Vector3i& volumeResolution,
-           const Eigen::Matrix4f& pose,
-           const int              classID,
-           const ProbVector&      probVector,
-           const Eigen::Vector2i  imgSize);
+    Object(const int                voxelBlockSize,
+           const Eigen::Vector3f&   volumeDimensions,
+           const Eigen::Vector3i&   volumeResolution,
+           const Eigen::Matrix4f&   pose,
+           const int                classID,
+           const ProbVector&        probVector,
+//           const Eigen::Matrix<float, 1, 80>&        probVector,
+           const Eigen::Vector2i    imgSize);
 
-    inline void setVolumeSize(const Eigen::Vector3f volumeSize)
+    inline void setVolumeDimensions(const Eigen::Vector3f volumeDimensions)
     {
-        this->volumeSize_ = volumeSize;
+        this->volumeDimensions_ = volumeDimensions;
     };
 
     inline int getVoxelBlockSize() const
@@ -42,17 +45,23 @@ public:
         return this->voxelBlockSize_;
     }
 
-    inline Eigen::Vector3f getVolumeSize() const
+    inline Eigen::Vector3f getVolumeDimensions() const
     {
-        return this->volumeSize_;
+        return this->volumeDimensions_;
     };
 
-    inline Eigen::Vector2i getVolumeResolution() const
+    inline Eigen::Vector3i getVolumeResolution() const
     {
         return this->volumeResolution_;
     };
 
-    void integrateBackgroundKernel();
+    void integrateBackgroundKernel(const Eigen::Vector4f    k,
+                                   const float              mu,
+                                   const uint               frame,
+                                   const Eigen::Matrix4f&   T_w_c,
+                                   const float *            float_depth,
+                                   const Eigen::Vector3f *  float_rgb,
+                                   const Eigen::Vector2i    frameSize);
 
     void integrateVolumeKernel();
 
@@ -60,19 +69,21 @@ public:
 
     void fuseSemanticLabel();
 
+    virtual ~Object();
+
 private:
     // Volume
     unsigned int voxelBlockSize_ = 8;
-    Eigen::Vector3f volumeSize_;
-    Eigen::Vector2i volumeResolution_;
+    Eigen::Vector3f volumeDimensions_;
+    Eigen::Vector3i volumeResolution_;
 //    float volumeStep = min(volumeSize_) / max(volumeResolution_);
 
     // inter-frame
     se::Image<Eigen::Vector3f> vertex_;
     se::Image<Eigen::Vector3f> normal_;
 
-    std::vector<se::key_t> allocationList_;
-//    std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
+    std::vector<se::key_t> * allocationList_;
+    std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
     Volume<FieldType> volume_;
     size_t reserved_  = 0;
 
@@ -84,8 +95,10 @@ private:
     Eigen::Matrix4f volumePose_;
 
     // semantics
-    ProbVector semanticFusion_  = ProbVector::Zero();
+    ProbVector semanticFusion_ = ProbVector::Zero();
+//    Eigen::Matrix<float, 1, 80> semanticFusion_ = Eigen::Matrix<float, 1, 80>::Zero();
     const size_t labelSize = 80;
+    int fusedTime_;
 
 };
 
