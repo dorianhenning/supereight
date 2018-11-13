@@ -39,10 +39,7 @@ Object::Object(const int                voxelBlockSize,
 
 Object::~Object()
 {
-//    this->volume_.release();
     if(allocationList_) { delete(allocationList_); }
-//    free(vertex_);
-//    free(normal_);
 }
 
 void Object::integrateBackgroundKernel(const Eigen::Vector4f    k,

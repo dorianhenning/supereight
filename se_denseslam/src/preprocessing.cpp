@@ -121,12 +121,18 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
     int width = in.width();
     int height = in.height();
 #pragma omp parallel for \
-        shared(out), private(x,y)
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
-			const Eigen::Vector2i pleft = Eigen::Vector2i(max(int(x) - 1, 0), y);
-			const Eigen::Vector2i pright = Eigen::Vector2i(min(x + 1, (int) width - 1),
-					y);
+  shared(out), private(x,y)
+  for (y = 0; y < height; y++) {
+    for (x = 0; x < width; x++) {
+      const Eigen::Vector3f center  = in[x + width * y];
+      if (center.z() == 0.f) {
+        out[x + y * width].x() = INVALID;
+        continue;
+      }
+
+      const Eigen::Vector2i pleft = Eigen::Vector2i(max(int(x) - 1, 0), y);
+      const Eigen::Vector2i pright = Eigen::Vector2i(min(x + 1, (int) width - 1),
+          y);
 
             // Swapped to match the left-handed coordinate system of ICL-NUIM
             Eigen::Vector2i pup, pdown;
@@ -138,21 +144,21 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
                 pup = Eigen::Vector2i(x, min(y + 1, ((int) height) - 1));
             }
 
-			const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
-			const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
-			const Eigen::Vector3f up    = in[pup.x() + width * pup.y()];
-			const Eigen::Vector3f down  = in[pdown.x() + width * pdown.y()];
+      const Eigen::Vector3f left  = in[pleft.x() + width * pleft.y()];
+      const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
+      const Eigen::Vector3f up    = in[pup.x() + width * pup.y()];
+      const Eigen::Vector3f down  = in[pdown.x() + width * pdown.y()];
 
-			if (left.z() == 0 || right.z() == 0 || up.z() == 0 || down.z() == 0) {
-				out[x + y * width].x() = INVALID;
-				continue;
-			}
-			const Eigen::Vector3f dxv = right - left;
-			const Eigen::Vector3f dyv = up - down;
+      if (left.z() == 0 || right.z() == 0 || up.z() == 0 || down.z() == 0) {
+        out[x + y * width].x() = INVALID;
+        continue;
+      }
+      const Eigen::Vector3f dxv = right - left;
+      const Eigen::Vector3f dyv = up - down;
       out[x + y * width] =  dxv.cross(dyv).normalized();
-		}
-	}
-	TOCK("vertex2normalKernel", width * height);
+    }
+  }
+  TOCK("vertex2normalKernel", width * height);
 }
 
 void mm2metersKernel(se::Image<float>       out,
@@ -224,14 +230,14 @@ void halfSampleRobustImageKernel(se::Image<float>&      out,
 	TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
 }
 
-float rgb2GreyScale(const uchar3& rgb) {
-    return (0.2989f * rgb.x + 0.5870f * rgb.y + 0.1140f * rgb.z) / 255.0f;
+float rgb2GreyScale(const Eigen::Matrix<unsigned char, 3, 1>& rgb) {
+    return (0.2989f * rgb.x() + 0.5870f * rgb.y() + 0.1140f * rgb.z()) / 255.0f;
 }
 
-void rgb2intensityKernel(se::Image<float>           outputGrey,
-				         se::Image<Eigen::Vector3f> outputRGB,
-				         const uchar3 *             inputRGB,
-				         const Eigen::Vector2i&     inputSize) {
+void rgb2intensityKernel(se::Image<float>                           outputGrey,
+				         se::Image<Eigen::Vector3f>                 outputRGB,
+				         const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
+				         const Eigen::Vector2i&                     inputSize) {
 	TICK();
 	// Check for unsupported conditions
 	if ((inputSize.x() < outputRGB.width()) || inputSize.y() < outputRGB.height()) {
@@ -253,10 +259,11 @@ void rgb2intensityKernel(se::Image<float>           outputGrey,
         shared(outputGrey, outputRGB), private(y)
 	for (y = 0; y < outputRGB.height(); y++)
 		for (int x = 0; x < outputRGB.width(); x++) {
-            const uchar3 rgb_resized = inputRGB[x * ratio + inputSize.x() * y * ratio];
-			outputRGB[x + outputRGB.width() * y].x() = rgb_resized.x / 255.0f;
-			outputRGB[x + outputRGB.width() * y].y() = rgb_resized.y / 255.0f;
-			outputRGB[x + outputRGB.width() * y].z() = rgb_resized.z / 255.0f;
+            Eigen::Matrix<unsigned char, 3, 1> rgb_resized;
+            rgb_resized = inputRGB[x * ratio + inputSize.x() * y * ratio];
+			outputRGB[x + outputRGB.width() * y].x() = rgb_resized.x() / 255.0f;
+			outputRGB[x + outputRGB.width() * y].y() = rgb_resized.y() / 255.0f;
+			outputRGB[x + outputRGB.width() * y].z() = rgb_resized.z() / 255.0f;
 			outputGrey[x + outputGrey.width() * y] = rgb2GreyScale(rgb_resized);
 		}
 TOCK("rgb2intensity", outSize.x * outSize.y);

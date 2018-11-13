@@ -1,10 +1,7 @@
 /*
-
  Copyright (c) 2014 University of Edinburgh, Imperial College, University of Manchester.
  Developed in the PAMELA project, EPSRC Programme Grant EP/K008730/1
-
  This code is licensed under the MIT License.
-
  */
 #include <se/DenseSLAMSystem.h>
 #include <default_parameters.h>
@@ -38,7 +35,6 @@ static uchar3 * inputRGB = NULL;
 static uchar4 * depthRender = NULL;
 static uchar4 * trackRender = NULL;
 static uchar4 * volumeRender = NULL;
-static uchar4 * volumeRenderColor = NULL;
 static DepthReader *reader = NULL;
 static DenseSLAMSystem *pipeline = NULL;
 
@@ -57,30 +53,30 @@ static std::ofstream logfilestream;
  */
 DepthReader *createReader(Configuration *config, std::string filename = "");
 int processAll(DepthReader *reader, bool processFrame, bool renderImages,
-		Configuration *config, bool reset = false);
+               Configuration *config, bool reset = false);
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipeline,
-		DepthReader **_depthReader, Configuration *config, void *depthRender,
-		void *trackRender, void *volumeModel, void *inputRGB);
+                    DepthReader **_depthReader, Configuration *config, void *depthRender,
+                    void *trackRender, void *volumeModel, void *inputRGB);
 
-void storeStats(int frame, 
-    std::chrono::time_point<std::chrono::steady_clock> *timings, 
-    float3 pos, bool tracked,
-		bool integrated) {
-	Stats.sample("frame", frame, PerfStats::FRAME);
-	Stats.sample("acquisition",  std::chrono::duration<double>(timings[1] - timings[0]).count(), PerfStats::TIME);
-	Stats.sample("preprocessing",std::chrono::duration<double>(timings[2] - timings[1]).count(), PerfStats::TIME);
-	Stats.sample("tracking",     std::chrono::duration<double>(timings[3] - timings[2]).count(), PerfStats::TIME);
-	Stats.sample("integration",  std::chrono::duration<double>(timings[4] - timings[3]).count(), PerfStats::TIME);
-	Stats.sample("raycasting",   std::chrono::duration<double>(timings[5] - timings[4]).count(), PerfStats::TIME);
-	Stats.sample("rendering",    std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
-	Stats.sample("computation",  std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
-	Stats.sample("total",        std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
-	Stats.sample("X", pos.x, PerfStats::DISTANCE);
-	Stats.sample("Y", pos.y, PerfStats::DISTANCE);
-	Stats.sample("Z", pos.z, PerfStats::DISTANCE);
-	Stats.sample("tracked", tracked, PerfStats::INT);
-	Stats.sample("integrated", integrated, PerfStats::INT);
+void storeStats(int frame,
+                std::chrono::time_point<std::chrono::steady_clock> *timings,
+                float3 pos, bool tracked,
+                bool integrated) {
+    Stats.sample("frame", frame, PerfStats::FRAME);
+    Stats.sample("acquisition",  std::chrono::duration<double>(timings[1] - timings[0]).count(), PerfStats::TIME);
+    Stats.sample("preprocessing",std::chrono::duration<double>(timings[2] - timings[1]).count(), PerfStats::TIME);
+    Stats.sample("tracking",     std::chrono::duration<double>(timings[3] - timings[2]).count(), PerfStats::TIME);
+    Stats.sample("integration",  std::chrono::duration<double>(timings[4] - timings[3]).count(), PerfStats::TIME);
+    Stats.sample("raycasting",   std::chrono::duration<double>(timings[5] - timings[4]).count(), PerfStats::TIME);
+    Stats.sample("rendering",    std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
+    Stats.sample("computation",  std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
+    Stats.sample("total",        std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
+    Stats.sample("X", pos.x, PerfStats::DISTANCE);
+    Stats.sample("Y", pos.y, PerfStats::DISTANCE);
+    Stats.sample("Z", pos.z, PerfStats::DISTANCE);
+    Stats.sample("tracked", tracked, PerfStats::INT);
+    Stats.sample("integrated", integrated, PerfStats::INT);
 }
 
 /***
@@ -89,204 +85,212 @@ void storeStats(int frame,
 
 int main(int argc, char ** argv) {
 
-	Configuration config = parseArgs(argc, argv);
-	powerMonitor = new PowerMonitor();
+    Configuration config = parseArgs(argc, argv);
+    powerMonitor = new PowerMonitor();
 
-	// ========= READER INITIALIZATION  =========
-	reader = createReader(&config);
+    // ========= READER INITIALIZATION  =========
+    reader = createReader(&config);
 
-	//  =========  BASIC PARAMETERS  (input size / computation size )  =========
-	uint2 inputSize =
-			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
-	const uint2 computationSize = make_uint2(
-			inputSize.x / config.compute_size_ratio,
-			inputSize.y / config.compute_size_ratio);
+    //  =========  BASIC PARAMETERS  (input size / computation size )  =========
+    uint2 inputSize =
+            (reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
+    const uint2 computationSize = make_uint2(
+            inputSize.x / config.compute_size_ratio,
+            inputSize.y / config.compute_size_ratio);
 
-	//  =========  BASIC BUFFERS  (input / output )  =========
+    //  =========  BASIC BUFFERS  (input / output )  =========
 
-	// Construction Scene reader and input buffer
-	//we could allocate a more appropriate amount of memory (less) but this makes life hard if we switch up resolution later;
-	inputDepth = 
+    // Construction Scene reader and input buffer
+    //we could allocate a more appropriate amount of memory (less) but this makes life hard if we switch up resolution later;
+    inputDepth =
             (uint16_t*) malloc(sizeof(uint16_t) * inputSize.x*inputSize.y);
-	inputRGB = 
+    inputRGB =
             (uchar3*) malloc(sizeof(uchar3) * inputSize.x*inputSize.y);
-	depthRender = 
+    depthRender =
             (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-	trackRender = 
+    trackRender =
             (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-	volumeRender = 
-            (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
-    volumeRenderColor =
+    volumeRender =
             (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 
-	init_pose = config.initial_pos_factor * config.volume_size;
-	pipeline = new DenseSLAMSystem(computationSize, config.volume_resolution,
-			config.volume_size, init_pose, config.pyramid, config);
+    init_pose = config.initial_pos_factor * config.volume_size;
+    pipeline = new DenseSLAMSystem(
+            Eigen::Vector2i(computationSize.x, computationSize.y),
+            Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x)),
+            Eigen::Vector3f::Constant(config.volume_size.x),
+            Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z),
+            config.pyramid, config);
 
-	if (config.log_file != "") {
-		logfilestream.open(config.log_file.c_str());
-		logstream = &logfilestream;
-	}
+    if (config.log_file != "") {
+        logfilestream.open(config.log_file.c_str());
+        logstream = &logfilestream;
+    }
 
-	logstream->setf(std::ios::fixed, std::ios::floatfield);
+    logstream->setf(std::ios::fixed, std::ios::floatfield);
 
-	//temporary fix to test rendering fullsize
-	config.render_volume_fullsize = false;
+    //temporary fix to test rendering fullsize
+    config.render_volume_fullsize = false;
 
-	//The following runs the process loop for processing all the frames, if QT is specified use that, else use GLUT
-	//We can opt to not run the gui which would be faster
-	if (!config.no_gui) {
+    //The following runs the process loop for processing all the frames, if QT is specified use that, else use GLUT
+    //We can opt to not run the gui which would be faster
+    if (!config.no_gui) {
 #ifdef __QT__
-		qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender, volumeRender, inputRGB);
+        qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender, volumeRender, inputRGB);
 #else
-		if ((reader == NULL) || (reader->cameraActive == false)) {
-			std::cerr << "No valid input file specified\n";
-			exit(1);
-		}
-		while (processAll(reader, true, true, &config, false) == 0) {
-			drawthem(inputRGB, depthRender, trackRender, volumeRender,
-					trackRender, inputSize, computationSize, 
-                    computationSize, computationSize);
-		}
+        if ((reader == NULL) || (reader->cameraActive == false)) {
+            std::cerr << "No valid input file specified\n";
+            exit(1);
+        }
+        while (processAll(reader, true, true, &config, false) == 0) {
+            drawthem(inputRGB, depthRender, trackRender, volumeRender,
+                     trackRender, inputSize, computationSize,
+                     computationSize, computationSize);
+        }
 #endif
-	} else {
-		if ((reader == NULL) || (reader->cameraActive == false)) {
-			std::cerr << "No valid input file specified\n";
-			exit(1);
-		}
-		while (processAll(reader, true, true, &config, false) == 0) {
-		}
-		std::cout << __LINE__ << std::endl;
-	}
-	// ==========     DUMP VOLUME      =========
+    } else {
+        if ((reader == NULL) || (reader->cameraActive == false)) {
+            std::cerr << "No valid input file specified\n";
+            exit(1);
+        }
+        while (processAll(reader, true, true, &config, false) == 0) {
+        }
+        std::cout << __LINE__ << std::endl;
+    }
+    // ==========     DUMP VOLUME      =========
 
-	if (config.dump_volume_file != "") {
-    auto start = std::chrono::steady_clock::now();
-		pipeline->dump_mesh(config.dump_volume_file.c_str());
-    auto end = std::chrono::steady_clock::now();
-	  Stats.sample("meshing", 
-        std::chrono::duration<double>(end - start).count(), 
-        PerfStats::TIME);
-	}
+    if (config.dump_volume_file != "") {
+        auto start = std::chrono::steady_clock::now();
+        pipeline->dump_mesh(config.dump_volume_file.c_str());
+        auto end = std::chrono::steady_clock::now();
+        Stats.sample("meshing",
+                     std::chrono::duration<double>(end - start).count(),
+                     PerfStats::TIME);
+    }
 
-	//if (config.log_file != "") {
-	//	std::ofstream logStream(config.log_file.c_str());
-	//	Stats.print_all_data(logStream);
-	//	logStream.close();
-	//}
-  //
-	if (powerMonitor && powerMonitor->isActive()) {
-		std::ofstream powerStream("power.rpt");
-		powerMonitor->powerStats.print_all_data(powerStream);
-		powerStream.close();
-	}
-	std::cout << "{";
-	//powerMonitor->powerStats.print_all_data(std::cout, false);
-	//std::cout << ",";
-	Stats.print_all_data(std::cout, false);
-	std::cout << "}" << std::endl;
+    //if (config.log_file != "") {
+    //	std::ofstream logStream(config.log_file.c_str());
+    //	Stats.print_all_data(logStream);
+    //	logStream.close();
+    //}
+    //
+    if (powerMonitor && powerMonitor->isActive()) {
+        std::ofstream powerStream("power.rpt");
+        powerMonitor->powerStats.print_all_data(powerStream);
+        powerStream.close();
+    }
+    std::cout << "{";
+    //powerMonitor->powerStats.print_all_data(std::cout, false);
+    //std::cout << ",";
+    Stats.print_all_data(std::cout, false);
+    std::cout << "}" << std::endl;
 
-	//  =========  FREE BASIC BUFFERS  =========
+    //  =========  FREE BASIC BUFFERS  =========
 
-	free(inputDepth);
-	free(depthRender);
-	free(trackRender);
-	free(volumeRender);
+    free(inputDepth);
+    free(depthRender);
+    free(trackRender);
+    free(volumeRender);
 
 }
 
 int processAll(DepthReader *reader, bool processFrame, bool renderImages,
-		Configuration *config, bool reset) {
-	static float duration = tick();
-	static int frameOffset = 0;
-	static bool firstFrame = true;
-	bool tracked, integrated, raycasted;
-	double start, end, startCompute, endCompute;
-	uint2 render_vol_size;
-	std::chrono::time_point<std::chrono::steady_clock> timings[7];
-	float3 pos;
-	int frame;
-	const uint2 inputSize =
-			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
-	float4 camera =
-			(reader != NULL) ?
-					(reader->getK() / config->compute_size_ratio) :
-					make_float4(0.0);
-	if (config->camera_overrided)
-		camera = config->camera / config->compute_size_ratio;
+               Configuration *config, bool reset) {
+    static float duration = tick();
+    static int frameOffset = 0;
+    static bool firstFrame = true;
+    bool tracked, integrated, raycasted;
+    double start, end, startCompute, endCompute;
+    uint2 render_vol_size;
+    std::chrono::time_point<std::chrono::steady_clock> timings[7];
+    float3 pos;
+    int frame;
+    const uint2 inputSize =
+            (reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
+    float4 camera =
+            (reader != NULL) ?
+            (reader->getK() / config->compute_size_ratio) :
+            make_float4(0.0);
+    if (config->camera_overrided)
+        camera = config->camera / config->compute_size_ratio;
 
-	if (reset) {
-		frameOffset = reader->getFrameNumber();
-	}
-	bool finished = false;
+    if (reset) {
+        frameOffset = reader->getFrameNumber();
+    }
+    bool finished = false;
 
-	if (processFrame) {
-		Stats.start();
-	}
-	Matrix4 pose;
-	timings[0] = std::chrono::steady_clock::now();
-	if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
-		frame = reader->getFrameNumber() - frameOffset;
-		if (powerMonitor != NULL && !firstFrame)
-			powerMonitor->start();
+    if (processFrame) {
+        Stats.start();
+    }
+    Eigen::Matrix4f pose;
+    timings[0] = std::chrono::steady_clock::now();
+    if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
+        frame = reader->getFrameNumber() - frameOffset;
+        if (powerMonitor != NULL && !firstFrame)
+            powerMonitor->start();
 
-		timings[1] = std::chrono::steady_clock::now();
-		pipeline->preprocessing(inputDepth, inputSize, config->bilateralFilter);
+        timings[1] = std::chrono::steady_clock::now();
+        pipeline->preprocessing(inputDepth,
+                                Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
 
-		timings[2] = std::chrono::steady_clock::now();
+        timings[2] = std::chrono::steady_clock::now();
 
-		tracked = pipeline->tracking(camera, config->icp_threshold,
-				config->tracking_rate, frame);
+        tracked = pipeline->tracking(
+                Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
+                config->icp_threshold,
+                config->tracking_rate, frame);
 
-		pos = pipeline->getPosition();
-		pose = pipeline->getPose();
+        Eigen::Vector3f tmp = pipeline->getPosition();
+        pos = make_float3(tmp.x(), tmp.y(), tmp.z());
+        pose = pipeline->getPose();
 
-		timings[3] = std::chrono::steady_clock::now();
+        timings[3] = std::chrono::steady_clock::now();
 
-		integrated = pipeline->integration(camera, config->integration_rate,
-				config->mu, frame);
+        integrated = pipeline->integration(
+                Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
+                config->integration_rate,
+                config->mu, frame);
 
-		timings[4] = std::chrono::steady_clock::now();
+        timings[4] = std::chrono::steady_clock::now();
 
-		raycasted = pipeline->raycasting(camera, config->mu, frame);
+        raycasted = pipeline->raycasting(
+                Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
+                config->mu, frame);
 
-		timings[5] = std::chrono::steady_clock::now();
+        timings[5] = std::chrono::steady_clock::now();
 
-	} else {
-		if (processFrame) {
-			finished = true;
-			timings[0] = std::chrono::steady_clock::now();
-		}
+    } else {
+        if (processFrame) {
+            finished = true;
+            timings[0] = std::chrono::steady_clock::now();
+        }
 
-	}
-	if (renderImages) {
-		pipeline->renderDepth(depthRender, pipeline->getComputationResolution());
-		pipeline->renderTrack(trackRender, pipeline->getComputationResolution());
-		pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
-				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
-				config->rendering_rate, camera, 0.75 * config->mu);
-//        pipeline->renderVolumeColor(volumeRender, pipeline->getComputationResolution(),
-//                (processFrame ? reader->getFrameNumber() - frameOffset : 0),
-//                config->rendering_rate, camera, 0.75 * config->mu);
-		timings[6] = std::chrono::steady_clock::now();
-	}
-
-	if (!finished) {
-		if (powerMonitor != NULL && !firstFrame)
-			powerMonitor->sample();
-
-		float xt = pose.data[0].w - init_pose.x;
-		float yt = pose.data[1].w - init_pose.y;
-		float zt = pose.data[2].w - init_pose.z;
-		storeStats(frame, timings, pos, tracked, integrated);
-    if(config->no_gui){
-      *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
+    }
+    if (renderImages) {
+        pipeline->renderDepth(depthRender, pipeline->getComputationResolution());
+        pipeline->renderTrack(trackRender, pipeline->getComputationResolution());
+        pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
+                               (processFrame ? reader->getFrameNumber() - frameOffset : 0),
+                               config->rendering_rate,
+                               Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
+                               0.75 * config->mu);
+        timings[6] = std::chrono::steady_clock::now();
     }
 
-		//if (config->no_gui && (config->log_file == ""))
-		//	Stats.print();
-		firstFrame = false;
-	}
-	return (finished);
-}
+    if (!finished) {
+        if (powerMonitor != NULL && !firstFrame)
+            powerMonitor->sample();
 
+        float xt = pose(0, 3) - init_pose.x;
+        float yt = pose(1, 3) - init_pose.y;
+        float zt = pose(2, 3) - init_pose.z;
+        storeStats(frame, timings, pos, tracked, integrated);
+        if(config->no_gui){
+            *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
+        }
+
+        //if (config->no_gui && (config->log_file == ""))
+        //	Stats.print();
+        firstFrame = false;
+    }
+    return (finished);
+}
