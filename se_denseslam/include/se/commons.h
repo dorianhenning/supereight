@@ -326,21 +326,21 @@ struct TrackData {
 };
 
 inline Eigen::Matrix4f getCameraMatrix(const Eigen::Vector4f& k) {
-    Eigen::Matrix4f K;
-    K << k.x(), 0, k.z(), 0,
-            0, k.y(), k.w(), 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1;
-    return K;
+  Eigen::Matrix4f K;
+	K << k.x(), 0, k.z(), 0,
+       0, k.y(), k.w(), 0,
+       0, 0, 1, 0,
+       0, 0, 0, 1;
+	return K;
 }
 
 inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
-    Eigen::Matrix4f invK;
-    invK << 1.0f / k.x(), 0, -k.z() / k.x(), 0,
-            0, 1.0f / k.y(), -k.w() / k.y(), 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1;
-    return invK;
+  Eigen::Matrix4f invK;
+  invK << 1.0f / k.x(), 0, -k.z() / k.x(), 0,
+       0, 1.0f / k.y(), -k.w() / k.y(), 0,
+       0, 0, 1, 0,
+       0, 0, 0, 1;
+	return invK;
 }
 
 
@@ -377,10 +377,10 @@ TooN::Vector<6> solve(const TooN::Vector<27, T, A> & vals) {
 
 template<typename P>
 inline Eigen::Matrix4f toMatrix4f(const TooN::SE3<P> & p) {
-    const TooN::Matrix<4, 4, float> I = TooN::Identity;
-    Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
-    TooN::wrapMatrix<4, 4>(R.data()) = p * I;
-    return R;
+	const TooN::Matrix<4, 4, float> I = TooN::Identity;
+  Eigen::Matrix<float, 4, 4, Eigen::RowMajor>  R;
+	TooN::wrapMatrix<4, 4>(R.data()) = p * I;
+	return R;
 }
 
 static const float epsilon = 0.0000001;
@@ -459,14 +459,14 @@ inline void compareFloat4(std::string str, float4* l, float4 * r, uint size) {
 
 
 inline bool compareFloat4(float4* l, float4 * r, uint size) {
-    for (unsigned int i = 0; i < size; i++) {
-        if ((std::abs(l[i].x - r[i].x) > epsilon) ||
-            (std::abs(l[i].y - r[i].y) > epsilon) ||
-            (std::abs(l[i].z - r[i].z) > epsilon) ||
-            (std::abs(l[i].w - r[i].w) > epsilon))
-            return false;
-    }
-    return true;
+	for (unsigned int i = 0; i < size; i++) {
+		if ((std::abs(l[i].x - r[i].x) > epsilon) ||
+		    (std::abs(l[i].y - r[i].y) > epsilon) ||
+		    (std::abs(l[i].z - r[i].z) > epsilon) ||
+		    (std::abs(l[i].w - r[i].w) > epsilon))
+     return false; 
+	}
+  return true;
 }
 
 inline void compareNormal(std::string str, float3* l, float3 * r, uint size) {
@@ -604,36 +604,36 @@ inline void writeVtkMesh(const char * filename,
 
 inline void writeObjMesh(const char * filename,
                          const std::vector<Triangle>& mesh){
-    std::stringstream points;
-    std::stringstream faces;
-    int point_count = 0;
-    int face_count = 0;
+  std::stringstream points;
+  std::stringstream faces;
+  int point_count = 0;
+  int face_count = 0;
 
-    for(unsigned int i = 0; i < mesh.size(); i++){
-        const Triangle& t = mesh[i];
-        points << "v " << t.vertexes[0](0) << " " << t.vertexes[0](1)
-               << " "  << t.vertexes[0](2) << std::endl;
-        points << "v " << t.vertexes[1](0) << " " << t.vertexes[1](1)
-               << " "  << t.vertexes[1](2) << std::endl;
-        points << "v " << t.vertexes[2](0) << " " << t.vertexes[2](1)
-               << " "  << t.vertexes[2](2) << std::endl;
+  for(unsigned int i = 0; i < mesh.size(); i++){
+    const Triangle& t = mesh[i];  
+    points << "v " << t.vertexes[0](0) << " " << t.vertexes[0](1)
+           << " "  << t.vertexes[0](2) << std::endl;
+    points << "v " << t.vertexes[1](0) << " " << t.vertexes[1](1) 
+           << " "  << t.vertexes[1](2) << std::endl;
+    points << "v " << t.vertexes[2](0) << " " << t.vertexes[2](1) 
+           << " "  << t.vertexes[2](2) << std::endl;
 
-        faces  << "f " << (face_count*3)+1 << " " << (face_count*3)+2
-               << " " << (face_count*3)+3 << std::endl;
+    faces  << "f " << (face_count*3)+1 << " " << (face_count*3)+2 
+           << " " << (face_count*3)+3 << std::endl;
 
-        point_count +=3;
-        face_count += 1;
-    }
+    point_count +=3;
+    face_count += 1;
+  }
 
-    std::ofstream f(filename);
-    f << "# OBJ file format with ext .obj" << std::endl;
-    f << "# vertex count = " << point_count << std::endl;
-    f << "# face count = " << face_count << std::endl;
-    f << points.str();
-    f << faces.str();
-    f.close();
-    std::cout << "Written " << face_count << " faces and " << point_count
-              << " points" << std::endl;
+  std::ofstream f(filename); 
+  f << "# OBJ file format with ext .obj" << std::endl;
+  f << "# vertex count = " << point_count << std::endl;
+  f << "# face count = " << face_count << std::endl;
+  f << points.str();
+  f << faces.str();
+  f.close();
+  std::cout << "Written " << face_count << " faces and " << point_count 
+            << " points" << std::endl;
 }
 #endif
 

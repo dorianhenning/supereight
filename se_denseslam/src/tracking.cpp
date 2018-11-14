@@ -281,13 +281,11 @@ bool updatePoseKernel(Eigen::Matrix4f & pose, const float * output,
 		float icp_threshold) {
 	bool res = false;
 	TICK();
-	// Update the pose regarding the tracking result
 	TooN::Matrix<8, 32, const float, TooN::Reference::RowMajor> values(output);
 	TooN::Vector<6> x = solve(values[0].slice<1, 27>());
 	TooN::SE3<> delta(x);
 	pose = toMatrix4f(delta) * pose;
 
-	// Return validity test result of the tracking
 	if (norm(x) < icp_threshold)
 		res = true;
 
@@ -295,8 +293,10 @@ bool updatePoseKernel(Eigen::Matrix4f & pose, const float * output,
 	return res;
 }
 
-bool checkPoseKernel(Eigen::Matrix4f & pose, Eigen::Matrix4f oldPose, const float * output,
-		const Eigen::Vector2i& imageSize, float track_threshold) {
+
+bool checkPoseKernel(Eigen::Matrix4f& pose, Eigen::Matrix4f oldPose, 
+    const float * output, const Eigen::Vector2i& imageSize, 
+    float track_threshold) {
 
 	// Check the tracking result, and go back to the previous camera position if necessary
 

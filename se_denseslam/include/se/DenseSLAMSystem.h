@@ -310,12 +310,12 @@ public:
      * \return A vector containing the x, y and z coordinates of the camera.
      */
     Eigen::Vector3f getPosition() {
-        //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
-        //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
-        float xt = pose_(0, 3) - init_pose_.x();
-        float yt = pose_(1, 3) - init_pose_.y();
-        float zt = pose_(2, 3) - init_pose_.z();
-        return Eigen::Vector3f(xt, yt, zt);
+      //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
+      //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
+      float xt = pose_(0, 3) - init_pose_.x();
+      float yt = pose_(1, 3) - init_pose_.y();
+      float zt = pose_(2, 3) - init_pose_.z();
+      return Eigen::Vector3f(xt, yt, zt);
     }
 
     /**
@@ -333,7 +333,7 @@ public:
      * \return The current camera pose encoded in a 4x4 matrix.
      */
     Eigen::Matrix4f getPose() {
-        return pose_;
+      return pose_;
     }
 
     /**
@@ -342,14 +342,14 @@ public:
      * \param[in] value The desired camera pose encoded in a 4x4 matrix.
      */
     void setViewPose(Eigen::Matrix4f *value = NULL) {
-        if (value == NULL){
-            viewPose_ = &pose_;
-            need_render_ = false;
-        }
-        else {
-            viewPose_ = value;
-            need_render_ = true;
-        }
+      if (value == NULL){
+        viewPose_ = &pose_;
+        need_render_ = false;
+      }
+      else {
+        viewPose_ = value;
+        need_render_ = true;
+      }
     }
 
     /**
@@ -359,7 +359,7 @@ public:
      * \return The current camera pose encoded in a 4x4 matrix.
      */
     Eigen::Matrix4f *getViewPose() {
-        return (viewPose_);
+      return (viewPose_);
     }
 
     /**

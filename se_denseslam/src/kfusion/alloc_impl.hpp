@@ -52,10 +52,10 @@
  */
 template <typename FieldType, template <typename> class OctreeT, typename HashType>
 unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
-                                 OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose,
-                                 const Eigen::Matrix4f& K,
-                                 const float *depthmap, const Eigen::Vector2i& imageSize,
-                                 const unsigned int size,  const float voxelSize, const float band) {
+    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose,
+    const Eigen::Matrix4f& K, 
+    const float *depthmap, const Eigen::Vector2i& imageSize, 
+    const unsigned int size,  const float voxelSize, const float band) {
 
   const float inverseVoxelSize = 1/voxelSize;
   const unsigned block_scale = log2(size) - log2_const(se::VoxelBlock<FieldType>::side);
@@ -82,7 +82,7 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
         continue;
       const float depth = depthmap[x + y*imageSize.x()];
       Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth,
-                                                             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
+            (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
       Eigen::Vector3f direction = (camera - worldVertex).normalized();
       const Eigen::Vector3f origin = worldVertex - (band * 0.5f) * direction;
@@ -97,10 +97,10 @@ unsigned int buildAllocationList(HashType * allocationList, size_t reserved,
             (voxelScaled.y() >= 0) &&   (voxelScaled.z() >= 0)){
           voxel = voxelScaled.cast<int>();
           se::VoxelBlock<FieldType> * n = map_index.fetch(voxel.x(),
-                                                          voxel.y(), voxel.z());
+              voxel.y(), voxel.z());
           if(!n){
-            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
-                                        block_scale);
+            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(), 
+                block_scale);
             unsigned int idx = ++voxelCount;
             if(idx < reserved) {
               allocationList[idx] = k;

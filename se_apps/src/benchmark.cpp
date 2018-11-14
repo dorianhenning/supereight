@@ -128,7 +128,7 @@ int main(int argc, char ** argv) {
 
 		timings[3] = std::chrono::steady_clock::now();
 
-		Eigen::Matrix4f pose = pipeline.getPose();
+    Eigen::Matrix4f pose = pipeline.getPose();
 
 		float xt = pose(0, 3) - init_pose.x;
 		float yt = pose(1, 3) - init_pose.y;

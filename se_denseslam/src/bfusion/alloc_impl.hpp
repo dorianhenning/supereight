@@ -54,17 +54,17 @@ template <typename FieldType,
         template <typename> class OctreeT, typename HashType,
         typename StepF, typename DepthF>
 size_t buildOctantList(HashType* allocationList, size_t reserved,
-                       OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose,
-                       const Eigen::Matrix4f& K, const float *depthmap, const Eigen::Vector2i &imageSize,
-                       const float voxelSize, StepF compute_stepsize, DepthF step_to_depth,
-                       const float band) {
+    OctreeT<FieldType>& map_index, const Eigen::Matrix4f& pose,
+    const Eigen::Matrix4f& K, const float *depthmap, const Eigen::Vector2i &imageSize, 
+    const float voxelSize, StepF compute_stepsize, DepthF step_to_depth,
+    const float band) {
 
-    const float inverseVoxelSize = 1.f/voxelSize;
-    Eigen::Matrix4f invK = K.inverse();
-    const Eigen::Matrix4f kPose = pose * invK;
-    const int size = map_index.size();
-    const int max_depth = log2(size);
-    const int leaves_depth = max_depth - log2_const(OctreeT<FieldType>::blockSide);
+  const float inverseVoxelSize = 1.f/voxelSize;
+  Eigen::Matrix4f invK = K.inverse();
+  const Eigen::Matrix4f kPose = pose * invK;
+  const int size = map_index.size();
+  const int max_depth = log2(size);
+  const int leaves_depth = max_depth - log2_const(OctreeT<FieldType>::blockSide);
 
 #ifdef _OPENMP
     std::atomic<unsigned int> voxelCount;
@@ -73,29 +73,29 @@ size_t buildOctantList(HashType* allocationList, size_t reserved,
     unsigned int voxelCount;
 #endif
 
-    int x, y;
-    const Eigen::Vector3f camera = pose.topRightCorner<1, 3>();
-    voxelCount = 0;
+  int x, y;
+  const Eigen::Vector3f camera = pose.topRightCorner<1, 3>();
+  voxelCount = 0;
 #pragma omp parallel for \
   private(y)
-    for (y = 0; y < imageSize.y(); y++) {
-        for (x = 0; x < imageSize.x(); x++) {
-            if(depthmap[x + y*imageSize.x()] == 0)
-                continue;
-            int tree_depth = max_depth;
-            float stepsize = voxelSize;
-            const float depth = depthmap[x + y*imageSize.x()];
-            Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth,
-                                                                   (y + 0.5f) * depth, depth).homogeneous()).head<3>();
+  for (y = 0; y < imageSize.y(); y++) {
+    for (x = 0; x < imageSize.x(); x++) {
+      if(depthmap[x + y*imageSize.x()] == 0)
+        continue;
+      int tree_depth = max_depth; 
+      float stepsize = voxelSize;
+      const float depth = depthmap[x + y*imageSize.x()];
+      Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth, 
+            (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
-            Eigen::Vector3f direction = (camera - worldVertex).normalized();
-            const Eigen::Vector3f origin = worldVertex - (band * 0.5f) * direction;
-            const float dist = (camera - origin).norm();
-            Eigen::Vector3f step = direction*stepsize;
+      Eigen::Vector3f direction = (camera - worldVertex).normalized();
+      const Eigen::Vector3f origin = worldVertex - (band * 0.5f) * direction;
+      const float dist = (camera - origin).norm(); 
+      Eigen::Vector3f step = direction*stepsize;
 
-            Eigen::Vector3f voxelPos = origin;
-            float travelled = 0.f;
-            for(; travelled < dist; travelled += stepsize){
+      Eigen::Vector3f voxelPos = origin;
+      float travelled = 0.f;
+      for(; travelled < dist; travelled += stepsize){
 
                 Eigen::Vector3f voxelScaled = (voxelPos * inverseVoxelSize).array().floor();
                 if((voxelScaled.x() < size) && (voxelScaled.y() < size) &&

@@ -57,20 +57,20 @@ inline __host__ __device__ bool in(const int value, const int lower,
 }
 
 inline __host__     __device__ uchar3 operator*(const uchar3 a, float v) {
-    return make_uchar3(a.x * v, a.y * v, a.z * v);
+	return make_uchar3(a.x * v, a.y * v, a.z * v);
 }
 
 inline float sq(float r) {
-    return r * r;
+	return r * r;
 }
 
 inline Eigen::Matrix4f toMatrix4f(const Eigen::Vector3f& trans) {
-    Eigen::Matrix4f se3_mat;
-    se3_mat << 1.f ,  0.f ,  0.f , trans.x(),
-            0.f ,  1.f ,  0.f , trans.y(),
-            0.f ,  0.f ,  1.f , trans.z(),
-            0.f ,  0.f ,  0.f ,  1.f;
-    return se3_mat;
+  Eigen::Matrix4f se3_mat;  
+  se3_mat << 1.f ,  0.f ,  0.f , trans.x(), 
+             0.f ,  1.f ,  0.f , trans.y(), 
+             0.f ,  0.f ,  1.f , trans.z(), 
+             0.f ,  0.f ,  0.f ,  1.f;
+  return se3_mat;
 }
 
 constexpr int log2_const(int n){

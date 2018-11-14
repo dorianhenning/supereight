@@ -194,99 +194,99 @@ int main(int argc, char ** argv) {
 }
 
 int processAll(DepthReader *reader, bool processFrame, bool renderImages,
-               Configuration *config, bool reset) {
-    static float duration = tick();
-    static int frameOffset = 0;
-    static bool firstFrame = true;
-    bool tracked, integrated, raycasted;
-    double start, end, startCompute, endCompute;
-    uint2 render_vol_size;
-    std::chrono::time_point<std::chrono::steady_clock> timings[7];
-    float3 pos;
-    int frame;
-    const uint2 inputSize =
-            (reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
-    float4 camera =
-            (reader != NULL) ?
-            (reader->getK() / config->compute_size_ratio) :
-            make_float4(0.0);
-    if (config->camera_overrided)
-        camera = config->camera / config->compute_size_ratio;
+		Configuration *config, bool reset) {
+	static float duration = tick();
+	static int frameOffset = 0;
+	static bool firstFrame = true;
+	bool tracked, integrated, raycasted;
+	double start, end, startCompute, endCompute;
+	uint2 render_vol_size;
+	std::chrono::time_point<std::chrono::steady_clock> timings[7];
+	float3 pos;
+	int frame;
+	const uint2 inputSize =
+			(reader != NULL) ? reader->getinputSize() : make_uint2(640, 480);
+	float4 camera =
+			(reader != NULL) ?
+					(reader->getK() / config->compute_size_ratio) :
+					make_float4(0.0);
+	if (config->camera_overrided)
+		camera = config->camera / config->compute_size_ratio;
 
-    if (reset) {
-        frameOffset = reader->getFrameNumber();
+	if (reset) {
+		frameOffset = reader->getFrameNumber();
+	}
+	bool finished = false;
+
+	if (processFrame) {
+		Stats.start();
+	}
+  Eigen::Matrix4f pose;
+	timings[0] = std::chrono::steady_clock::now();
+	if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
+		frame = reader->getFrameNumber() - frameOffset;
+		if (powerMonitor != NULL && !firstFrame)
+			powerMonitor->start();
+
+		timings[1] = std::chrono::steady_clock::now();
+		pipeline->preprocessing(inputDepth, 
+        Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
+
+		timings[2] = std::chrono::steady_clock::now();
+
+		tracked = pipeline->tracking(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config->icp_threshold,
+				config->tracking_rate, frame);
+
+    Eigen::Vector3f tmp = pipeline->getPosition();
+		pos = make_float3(tmp.x(), tmp.y(), tmp.z());
+    pose = pipeline->getPose();
+
+		timings[3] = std::chrono::steady_clock::now();
+
+		integrated = pipeline->integration(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config->integration_rate,
+				config->mu, frame);
+
+		timings[4] = std::chrono::steady_clock::now();
+
+		raycasted = pipeline->raycasting(
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        config->mu, frame);
+
+		timings[5] = std::chrono::steady_clock::now();
+
+	} else {
+		if (processFrame) {
+			finished = true;
+			timings[0] = std::chrono::steady_clock::now();
+		}
+
+	}
+	if (renderImages) {
+		pipeline->renderDepth(depthRender, pipeline->getComputationResolution());
+		pipeline->renderTrack(trackRender, pipeline->getComputationResolution());
+		pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
+				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
+				config->rendering_rate, 
+        Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w), 
+        0.75 * config->mu);
+		timings[6] = std::chrono::steady_clock::now();
+	}
+
+	if (!finished) {
+		if (powerMonitor != NULL && !firstFrame)
+			powerMonitor->sample();
+
+		float xt = pose(0, 3) - init_pose.x;
+		float yt = pose(1, 3) - init_pose.y;
+		float zt = pose(2, 3) - init_pose.z;
+		storeStats(frame, timings, pos, tracked, integrated);
+    if(config->no_gui){
+      *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
     }
-    bool finished = false;
-
-    if (processFrame) {
-        Stats.start();
-    }
-    Eigen::Matrix4f pose;
-    timings[0] = std::chrono::steady_clock::now();
-    if (processFrame && (reader->readNextDepthFrame(inputRGB, inputDepth))) {
-        frame = reader->getFrameNumber() - frameOffset;
-        if (powerMonitor != NULL && !firstFrame)
-            powerMonitor->start();
-
-        timings[1] = std::chrono::steady_clock::now();
-        pipeline->preprocessing(inputDepth,
-                                Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
-
-        timings[2] = std::chrono::steady_clock::now();
-
-        tracked = pipeline->tracking(
-                Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
-                config->icp_threshold,
-                config->tracking_rate, frame);
-
-        Eigen::Vector3f tmp = pipeline->getPosition();
-        pos = make_float3(tmp.x(), tmp.y(), tmp.z());
-        pose = pipeline->getPose();
-
-        timings[3] = std::chrono::steady_clock::now();
-
-        integrated = pipeline->integration(
-                Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
-                config->integration_rate,
-                config->mu, frame);
-
-        timings[4] = std::chrono::steady_clock::now();
-
-        raycasted = pipeline->raycasting(
-                Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
-                config->mu, frame);
-
-        timings[5] = std::chrono::steady_clock::now();
-
-    } else {
-        if (processFrame) {
-            finished = true;
-            timings[0] = std::chrono::steady_clock::now();
-        }
-
-    }
-    if (renderImages) {
-        pipeline->renderDepth(depthRender, pipeline->getComputationResolution());
-        pipeline->renderTrack(trackRender, pipeline->getComputationResolution());
-        pipeline->renderVolume(volumeRender, pipeline->getComputationResolution(),
-                               (processFrame ? reader->getFrameNumber() - frameOffset : 0),
-                               config->rendering_rate,
-                               Eigen::Vector4f(camera.x, camera.y, camera.z, camera.w),
-                               0.75 * config->mu);
-        timings[6] = std::chrono::steady_clock::now();
-    }
-
-    if (!finished) {
-        if (powerMonitor != NULL && !firstFrame)
-            powerMonitor->sample();
-
-        float xt = pose(0, 3) - init_pose.x;
-        float yt = pose(1, 3) - init_pose.y;
-        float zt = pose(2, 3) - init_pose.z;
-        storeStats(frame, timings, pos, tracked, integrated);
-        if(config->no_gui){
-            *logstream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
-        }
 
         //if (config->no_gui && (config->log_file == ""))
         //	Stats.print();

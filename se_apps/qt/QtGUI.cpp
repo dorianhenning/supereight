@@ -80,40 +80,40 @@ extern PowerMonitor *powerMonitor;
 
 // We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
 static void newDenseSLAMSystem(bool resetPose) {
-    Eigen::Matrix4f init_pose = (*pipeline_pp)->getPose();
+  Eigen::Matrix4f init_pose = (*pipeline_pp)->getPose();
 
-    if (*pipeline_pp)
-        delete *pipeline_pp;
-    if (!resetPose)
-        *pipeline_pp = new DenseSLAMSystem(
-                Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
-                Eigen::Vector3i(config->volume_resolution.x,
-                                config->volume_resolution.x,
-                                config->volume_resolution.x),
-                Eigen::Vector3f(config->volume_size.x, config->volume_size.x,
-                                config->volume_size.x), init_pose, config->pyramid, *config);
-    else {
-        trans = SE3<float>::exp(
-                makeVector(config->initial_pos_factor.x,
-                           config->initial_pos_factor.y,
-                           config->initial_pos_factor.z, 0, 0, 0)
-                * config->volume_size.x);
-        rot = makeVector(0.0, 0, 0, 0, 0, 0);
-        float3 init_pose = config->initial_pos_factor * config->volume_size;
-        *pipeline_pp = new DenseSLAMSystem(
-                Eigen::Vector2i(640 / config->compute_size_ratio,
-                                480 / config->compute_size_ratio),
-                Eigen::Vector3i(config->volume_resolution.x,
-                                config->volume_resolution.x,
-                                config->volume_resolution.x),
-                Eigen::Vector3f(config->volume_size.x, config->volume_size.x,
-                                config->volume_size.x),
-                Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z),
-                config->pyramid, *config);
-    }
-    appWindow->viewers->setBufferSize(640 / config->compute_size_ratio,
-                                      480 / config->compute_size_ratio);
-    reset = true;
+	if (*pipeline_pp)
+		delete *pipeline_pp;
+	if (!resetPose)
+		*pipeline_pp = new DenseSLAMSystem(
+				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
+				Eigen::Vector3i(config->volume_resolution.x,
+						config->volume_resolution.x,
+						config->volume_resolution.x),
+        Eigen::Vector3f(config->volume_size.x, config->volume_size.x,
+                    config->volume_size.x), init_pose, config->pyramid, *config);
+	else {
+		trans = SE3<float>::exp(
+				makeVector(config->initial_pos_factor.x,
+						config->initial_pos_factor.y,
+						config->initial_pos_factor.z, 0, 0, 0)
+						* config->volume_size.x);
+		rot = makeVector(0.0, 0, 0, 0, 0, 0);
+	  float3 init_pose = config->initial_pos_factor * config->volume_size;
+		*pipeline_pp = new DenseSLAMSystem(
+				Eigen::Vector2i(640 / config->compute_size_ratio,
+						480 / config->compute_size_ratio),
+				Eigen::Vector3i(config->volume_resolution.x,
+						config->volume_resolution.x,
+						config->volume_resolution.x),
+				Eigen::Vector3f(config->volume_size.x, config->volume_size.x,
+						config->volume_size.x),
+        Eigen::Vector3f(init_pose.x, init_pose.y, init_pose.z), 
+        config->pyramid, *config);
+	}
+	appWindow->viewers->setBufferSize(640 / config->compute_size_ratio,
+			480 / config->compute_size_ratio);
+	reset = true;
 }
 static void continueWithNewDenseSLAMSystem() {
     newDenseSLAMSystem(false);
@@ -217,46 +217,46 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 
 //This function is passed to QT and is called whenever we aren't busy i.e in a constant loop
 void qtIdle(void) {
-    static bool shod = false;
-    //This will set the view for rendering the model, either to the tracked camera view or the static view
-    Eigen::Matrix4f pose = toMatrix4f(trans * rot);
-    if (usePOV)
-        (*pipeline_pp)->setViewPose(); //current position as found by track
-    else
-        (*pipeline_pp)->setViewPose(&pose);
-    //If we are are reading a file then get a new frame and process it.
-    if ((*reader_pp) && (*reader_pp)->cameraActive) {
-        int finished = processAll((*reader_pp), true, true, config, reset);
-        if (finished) {
-            if (loopEnabled) {
-                newDenseSLAMSystem(true);
-                (*reader_pp)->restart();
-            } else {
-                (*reader_pp)->cameraActive = false;
-                (*reader_pp)->cameraOpen = false;
-                shod = true;
-            }
-        } else {
-            reset = false;
-        }
-    } else {
-        //If we aren't reading
-        if ((*reader_pp == NULL) || !(*reader_pp)->cameraOpen
-            || !(*reader_pp)->cameraActive)
-            if (forceRender) {
-                processAll((*reader_pp), false, true, config, false);
-            }
-    }
-    //refresh the gui
+	static bool shod = false;
+	//This will set the view for rendering the model, either to the tracked camera view or the static view    
+  Eigen::Matrix4f pose = toMatrix4f(trans * rot);
+	if (usePOV)
+		(*pipeline_pp)->setViewPose(); //current position as found by track
+	else
+		(*pipeline_pp)->setViewPose(&pose);
+	//If we are are reading a file then get a new frame and process it.
+	if ((*reader_pp) && (*reader_pp)->cameraActive) {
+		int finished = processAll((*reader_pp), true, true, config, reset);
+		if (finished) {
+			if (loopEnabled) {
+				newDenseSLAMSystem(true);
+				(*reader_pp)->restart();
+			} else {
+				(*reader_pp)->cameraActive = false;
+				(*reader_pp)->cameraOpen = false;
+				shod = true;
+			}
+		} else {
+			reset = false;
+		}
+	} else {
+		//If we aren't reading 
+		if ((*reader_pp == NULL) || !(*reader_pp)->cameraOpen
+				|| !(*reader_pp)->cameraActive)
+			if (forceRender) {
+				processAll((*reader_pp), false, true, config, false);
+			}
+	}
+	//refresh the gui
 
-    appWindow->update(
-            *reader_pp != NULL ? (*reader_pp)->getFrameNumber() + 1 : 0,
-            ((*reader_pp == NULL) || !((*reader_pp)->cameraActive)) ?
-            CAMERA_CLOSED :
-            ((*reader_pp)->cameraOpen ?
-             ((config->input_file == "") ?
-              CAMERA_LIVE : CAMERA_RUNNING) :
-             CAMERA_PAUSED));
+	appWindow->update(
+			*reader_pp != NULL ? (*reader_pp)->getFrameNumber() + 1 : 0,
+			((*reader_pp == NULL) || !((*reader_pp)->cameraActive)) ?
+					CAMERA_CLOSED :
+					((*reader_pp)->cameraOpen ?
+							((config->input_file == "") ?
+									CAMERA_LIVE : CAMERA_RUNNING) :
+							CAMERA_PAUSED));
 }
 
 //Should we want to dump data from the gui this function can be passed to the QT and will be called with a filename when needed
