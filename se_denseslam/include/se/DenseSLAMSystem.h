@@ -136,15 +136,15 @@ public:
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const ushort *         inputDepth,
+    bool preprocessing(const unsigned short *         inputDepth,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const ushort *         inputDepth,
-                       const uchar3 *         inputRGB,
+    bool preprocessing(const unsigned short*          inputDepth,
+                       const unsigned char*   inputRGB,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
 
@@ -203,7 +203,7 @@ public:
      */
     bool raycasting(const Eigen::Vector4f& k,
                     float                  mu,
-                    uint                   frame);
+                    unsigned int                   frame);
 
     /*
      * TODO Implement this.
@@ -219,10 +219,8 @@ public:
      * Render the current 3D reconstruction.
      *
      * \param[out] out A pointer to an array containing the rendered frame.
-     * The array must be allocated before calling this function. The x, y and
-     * z members of each element of the array contain the R, G and B values of
-     * the image respectively. The w member of each element of the array is
-     * always 0 and is used for padding.
+     * The array must be allocated before calling this function. The storage
+     * layout is rgbwrgbwrgbw.
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      * \param[in] frame The index of the current frame (starts from 0).
@@ -232,7 +230,7 @@ public:
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
      */
-    void renderVolume(uchar4 *               out,
+    void renderVolume(unsigned char*               out,
                       const Eigen::Vector2i& outputSize,
                       int                    frame,
                       int                    rate,
@@ -259,7 +257,7 @@ public:
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderTrack(uchar4 *               out,
+    void renderTrack(unsigned char*               out,
                      const Eigen::Vector2i& outputSize);
 
     /**
@@ -276,7 +274,7 @@ public:
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderDepth(uchar4*                out,
+    void renderDepth(unsigned char*                out,
                      const Eigen::Vector2i& outputSize);
 
     //

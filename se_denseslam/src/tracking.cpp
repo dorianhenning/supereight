@@ -33,7 +33,7 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include "timings.h"
 
 #include <se/commons.h>
@@ -44,7 +44,7 @@ void new_reduce(int blockIndex, float * out, TrackData* J,
 		const Eigen::Vector2i& size) {
 	float *sums = out + blockIndex * 32;
 
-	for (uint i = 0; i < 32; ++i)
+	for (unsigned int i = 0; i < 32; ++i)
 		sums[i] = 0;
 	float sums0, sums1, sums2, sums3, sums4, sums5, sums6, sums7, sums8, sums9,
 			sums10, sums11, sums12, sums13, sums14, sums15, sums16, sums17,

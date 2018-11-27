@@ -34,66 +34,34 @@
 
 struct sdf_update {
 
-    template <typename DataHandlerT>
-    void operator()(DataHandlerT& handler,
-                    const Eigen::Vector3i&,
-                    const Eigen::Vector3f& pos,
-                    const Eigen::Vector2f& pixel) {
+  template <typename DataHandlerT>
+  void operator()(DataHandlerT& handler, const Eigen::Vector3i&, 
+      const Eigen::Vector3f& pos, const Eigen::Vector2f& pixel) {
 
-        const Eigen::Vector2i px = pixel.cast<int>();
-        const float depthSample = depth[px(0) + depthSize(0)*px(1)];
-        if (depthSample <=  0) return;
-        const float diff = (depthSample - pos(2))
-          * std::sqrt( 1 + sq(pos(0) / pos(2)) + sq(pos(1) / pos(2)));
-        if (diff > -mu) {
-            const float sdf = fminf(1.f, diff / mu);
-            auto data = handler.get();
-            data.x = clamp((data.y * data.x + sdf) / (data.y + 1), -1.f,
-              1.f);
-            data.y = fminf(data.y + 1, maxweight);
-
-            // color information
-            if (rgb_ != nullptr) {
-                const Eigen::Vector3f rgb_measured = rgb_[px(0) + depthSize(0)*px(1)];
-                data.r = clamp((rgb_measured(0) + data.w * data.r) / (data.w + 1), 0.f, 1.f);// * 255;
-                data.g = clamp((rgb_measured(1) + data.w * data.g) / (data.w + 1), 0.f, 1.f);// * 255;
-                data.b = clamp((rgb_measured(2) + data.w * data.b) / (data.w + 1), 0.f, 1.f);// * 255;
-                data.w = fminf(data.w + 1, maxweight);
-//                data.w += 1; // not sure which one to take, but fminf seems reasonable
-            }
-
-            handler.set(data);
-        }
+    const Eigen::Vector2i px = pixel.cast<int>();
+    const float depthSample = depth[px(0) + depthSize(0)*px(1)];
+    if (depthSample <=  0) return;
+    const float diff = (depthSample - pos(2)) 
+      * std::sqrt( 1 + se::math::sq(pos(0) / pos(2)) + se::math::sq(pos(1) / pos(2)));
+    if (diff > -mu) {
+      const float sdf = fminf(1.f, diff / mu);
+      auto data = handler.get();
+      data.x = se::math::clamp(
+          (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f), 
+          -1.f,
+          1.f);
+      data.y = fminf(data.y + 1, maxweight);
+      handler.set(data);
     }
+  } 
 
-    // grey version
-    sdf_update(const float * d,
-               const Eigen::Vector2i framesize,
-               float m,
-               int mw)
-        : depth(d),
-          rgb_(nullptr),
-          depthSize(framesize),
-          mu(m),
-          maxweight(mw) {};
+  sdf_update(const float * d, const Eigen::Vector2i framesize, float m, int mw) : 
+    depth(d), depthSize(framesize), mu(m), maxweight(mw){};
 
-    // color version
-    sdf_update(const float * d,
-               const Eigen::Vector3f * rgb,
-               const Eigen::Vector2i framesize,
-               float m,
-               int mw)
-        : depth(d),
-          rgb_(rgb),
-          depthSize(framesize),
-          mu(m),
-          maxweight(mw) {};
-
-    const float * depth;
-    const Eigen::Vector3f * rgb_;
-    Eigen::Vector2i depthSize;
-    float mu;
-    int maxweight;
+  const float * depth;
+  Eigen::Vector2i depthSize;
+  float mu;
+  int maxweight;
 };
 
-#endif //KFUSION_MAPPING_HPP
+#endif

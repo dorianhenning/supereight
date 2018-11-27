@@ -33,7 +33,7 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
-#include <math_utils.h>
+#include <se/utils/math_utils.h>
 #include <se/commons.h>
 #include <timings.h>
 #include <tuple>
@@ -59,7 +59,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
 #pragma simd
     for (int x = 0; x < vertex.width(); x++) {
 
-      uint2 pos = make_uint2(x, y);
+      Eigen::Vector2i pos(x, y);
       const Eigen::Vector3f dir = 
         (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
       const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
@@ -75,15 +75,15 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
             [](const auto& val){ return val.x; });
         if (surfNorm.norm() == 0) {
           //normal[pos] = normalize(surfNorm); // APN added
-          normal[pos.x + pos.y * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
+          normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
         } else {
           // Invert normals if SDF 
-          normal[pos.x + pos.y * normal.width()] = std::is_same<T, SDF>::value ?
+          normal[pos.x() + pos.y() * normal.width()] = std::is_same<T, SDF>::value ?
             (-1.f * surfNorm).normalized() : surfNorm.normalized();
         }
       } else {
-        vertex[pos.x + pos.y * vertex.width()] = Eigen::Vector3f::Constant(0);
-        normal[pos.x + pos.y * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
+        vertex[pos.x() + pos.y() * vertex.width()] = Eigen::Vector3f::Constant(0);
+        normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0, 0);
       }
     }
   TOCK("raycastKernel", inputSize.x * inputSize.y);
@@ -95,7 +95,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
 // #pragma omp parallel for shared(out), private(y)
 // 	for (y = 0; y < normalSize.y; y++)
 // 		for (unsigned int x = 0; x < normalSize.x; x++) {
-// 			uint pos = (x + y * normalSize.x);
+// 			unsigned int pos = (x + y * normalSize.x);
 // 			float3 n = normal[pos];
 // 			if (n.x == -2) {
 // 				out[pos] = make_uchar3(0, 0, 0);
@@ -108,7 +108,7 @@ void raycastKernel(const Volume<T>& volume, se::Image<Eigen::Vector3f>& vertex,
 // 	TOCK("renderNormalKernel", normalSize.x * normalSize.y);
 // }
 
-void renderDepthKernel(uchar4* out, float * depth, 
+void renderDepthKernel(unsigned char* out, float * depth, 
     const Eigen::Vector2i& depthSize, const float nearPlane, 
     const float farPlane) {
 	TICK();
@@ -123,23 +123,35 @@ void renderDepthKernel(uchar4* out, float * depth,
 		for (int x = 0; x < depthSize.x(); x++) {
 
 			unsigned int pos = rowOffeset + x;
+      unsigned int idx = pos * 4;
 
-			if (depth[pos] < nearPlane)
-				out[pos] = make_uchar4(255, 255, 255, 0); // The forth value is a padding in order to align memory
-			else {
-				if (depth[pos] > farPlane)
-					out[pos] = make_uchar4(0, 0, 0, 0); // The forth value is a padding in order to align memory
-				else {
-					const float d = (depth[pos] - nearPlane) * rangeScale;
-					out[pos] = gs2rgb(d);
-				}
-			}
+      if (depth[pos] < nearPlane) {
+        out[idx + 0] = 255;
+        out[idx + 1] = 255;
+        out[idx + 2] = 255;
+        out[idx + 3] = 0;
+      }
+      else if (depth[pos] > farPlane) {
+        out[idx + 0] = 0;
+        out[idx + 1] = 0;
+        out[idx + 2] = 0;
+        out[idx + 3] = 0;
+      }
+      else {
+        const float d = (depth[pos] - nearPlane) * rangeScale;
+        unsigned char rgbw[4];
+        gs2rgb(d, rgbw);
+        out[idx + 0] = rgbw[0];
+        out[idx + 1] = rgbw[1];
+        out[idx + 2] = rgbw[2];
+        out[idx + 3] = rgbw[3];
+      }
 		}
 	}
 	TOCK("renderDepthKernel", depthSize.x * depthSize.y);
 }
 
-void renderTrackKernel(uchar4* out, 
+void renderTrackKernel(unsigned char* out, 
     const TrackData* data, 
     const Eigen::Vector2i& outSize) {
   TICK();
@@ -149,28 +161,50 @@ void renderTrackKernel(uchar4* out,
   shared(out), private(y)
   for (y = 0; y < outSize.y(); y++)
     for (int x = 0; x < outSize.x(); x++) {
-      uint pos = x + y * outSize.x();
+      const int pos = x + outSize.x()*y;
+      const int idx = pos * 4;
       switch (data[pos].result) {
         case 1:
-          out[pos] = make_uchar4(128, 128, 128, 0);  // ok	 GREY
+          out[idx + 0] = 128;
+          out[idx + 1] = 128;
+          out[idx + 2] = 128;
+          out[idx + 3] = 0;
           break;
         case -1:
-          out[pos] = make_uchar4(0, 0, 0, 0);      // no input BLACK
+          out[idx + 0] = 0;
+          out[idx + 1] = 0;
+          out[idx + 2] = 0;
+          out[idx + 3] = 0;
           break;
         case -2:
-          out[pos] = make_uchar4(255, 0, 0, 0);        // not in image RED
+          out[idx + 0] = 255;
+          out[idx + 1] = 0;
+          out[idx + 2] = 0;
+          out[idx + 3] = 0;
           break;
         case -3:
-          out[pos] = make_uchar4(0, 255, 0, 0);    // no correspondence GREEN
+          out[idx + 0] = 0;
+          out[idx + 1] = 255;
+          out[idx + 2] = 0;
+          out[idx + 3] = 0;
           break;
         case -4:
-          out[pos] = make_uchar4(0, 0, 255, 0);        // to far away BLUE
+          out[idx + 0] = 0;
+          out[idx + 1] = 0;
+          out[idx + 2] = 255;
+          out[idx + 3] = 0;
           break;
         case -5:
-          out[pos] = make_uchar4(255, 255, 0, 0);     // wrong normal YELLOW
+          out[idx + 0] = 255;
+          out[idx + 1] = 255;
+          out[idx + 2] = 0;
+          out[idx + 3] = 0;
           break;
         default:
-          out[pos] = make_uchar4(255, 128, 128, 0);
+          out[idx + 0] = 255;
+          out[idx + 1] = 128;
+          out[idx + 2] = 128;
+          out[idx + 3] = 0;
           break;
       }
     }
@@ -178,20 +212,20 @@ void renderTrackKernel(uchar4* out,
 }
 
 template <typename T>
-void renderVolumeKernel(const Volume<T>&                    volume,
-                        uchar4*                             out,
-                        const Eigen::Vector2i&              depthSize,
-                        const Eigen::Matrix4f               view,
-                        const float                         nearPlane,
-                        const float                         farPlane,
-                        const float                         mu,
-                        const float                         step,
-                        const float                         largestep,
-                        const Eigen::Vector3f               light,
-                        const Eigen::Vector3f               ambient,
-                        bool                                render,
-                        const se::Image<Eigen::Vector3f>&   vertex,
-                        const se::Image<Eigen::Vector3f>&   normal) {
+void renderVolumeKernel(const Volume<T>& volume, 
+    unsigned char* out, // RGBW packed
+    const Eigen::Vector2i& depthSize, 
+    const Eigen::Matrix4f view, 
+    const float nearPlane, 
+    const float farPlane, 
+    const float mu,
+		const float step, 
+    const float largestep, 
+    const Eigen::Vector3f light,
+		const Eigen::Vector3f ambient, 
+    bool render, 
+    const se::Image<Eigen::Vector3f>& vertex, 
+    const se::Image<Eigen::Vector3f>& normal) {
   TICK();
   int y;
 #pragma omp parallel for shared(out), private(y)
@@ -199,6 +233,7 @@ void renderVolumeKernel(const Volume<T>&                    volume,
     for (int x = 0; x < depthSize.x(); x++) {
       Eigen::Vector4f hit;
       Eigen::Vector3f test, surfNorm;
+      const int idx = (x + depthSize.x()*y) * 4;
 
       if(render) {
         const Eigen::Vector3f dir = 
@@ -208,9 +243,9 @@ void renderVolumeKernel(const Volume<T>&                    volume,
             transl, dir, nearPlane, farPlane);
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
-        hit = t_min > 0.f ?
-              raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) :
-              Eigen::Vector4f::Constant(0.f);
+        hit = t_min > 0.f ? 
+          raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) : 
+          Eigen::Vector4f::Constant(0.f);
         if (hit.w() > 0) {
           test = hit.head<3>();
           Eigen::Vector3f surfNorm = volume.grad(test, 
@@ -219,7 +254,10 @@ void renderVolumeKernel(const Volume<T>&                    volume,
           // Invert normals if SDF 
           surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
         } else {
-          out[x + depthSize.x()*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
+          out[idx + 0] = 0;
+          out[idx + 1] = 0;
+          out[idx + 2] = 0;
+          out[idx + 3] = 0;
         }
       }
       else {
@@ -227,82 +265,24 @@ void renderVolumeKernel(const Volume<T>&                    volume,
         surfNorm = normal[x + depthSize.x()*y];
       }
 
-                if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
-                    const Eigen::Vector3f diff = (test - light).normalized();
-                    const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
-                    Eigen::Vector3f col = dir + ambient;
-                    clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
-                    col *=  255.f;
-                    out[x + depthSize.x()*y] = make_uchar4(col.x(), col.y(), col.z(), 0); // The forth value is a padding to align memory
-                } else {
-                    out[x + depthSize.x()*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
+      if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
+        const Eigen::Vector3f diff = (test - light).normalized();
+        const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
+        Eigen::Vector3f col = dir + ambient;
+        se::math::clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
+        col *=  255.f;
+        out[idx + 0] = col.x();
+        out[idx + 1] = col.y();
+        out[idx + 2] = col.z();
+        out[idx + 3] = 0;
+      } else {
+        out[idx + 0] = 0;
+        out[idx + 1] = 0;
+        out[idx + 2] = 0;
+        out[idx + 3] = 0;
       }
     }
   }
   TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
 }
 
-template <typename T>
-void renderVolumeKernelColor(const Volume<T>&                    volume,
-                             uchar4*                             out,
-                             const Eigen::Vector2i&              depthSize,
-                             const Eigen::Matrix4f               view,
-                             const float                         nearPlane,
-                             const float                         farPlane,
-                             const float                         mu,
-                             const float                         step,
-                             const float                         largestep,
-                             const Eigen::Vector3f               light,
-                             const Eigen::Vector3f               ambient,
-                             bool                                render,
-                             const se::Image<Eigen::Vector3f>&   vertex,
-                             const se::Image<Eigen::Vector3f>&   normal) {
-    TICK();
-        unsigned int y;
-#pragma omp parallel for shared(out), private(y)
-        for (y = 0; y < depthSize.y(); y++) {
-            for (unsigned int x = 0; x < depthSize.x(); x++) {
-                Eigen::Vector4f hit;
-                Eigen::Vector3f test, surfNorm;
-
-                if(render) {
-                    const Eigen::Vector3f dir =
-                            (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
-                    const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-                    se::ray_iterator<typename Volume<T>::field_type> ray(*volume._map_index,
-                                                                         transl, dir, nearPlane, farPlane);
-                    ray.next();
-                    const float t_min = ray.tmin(); /* Get distance to the first intersected block */
-                    hit = t_min > 0.f ?
-                          raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) :
-                          Eigen::Vector4f::Constant(0.f);
-                    if (hit.w() > 0) {
-                        test = hit.head<3>();
-                        Eigen::Vector3f surfNorm = volume.grad(test,
-                                                               [](const auto& val){ return val.x; });
-
-                        // Invert normals if SDF
-                        surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
-                    } else {
-                        out[x + depthSize.x()*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
-                    }
-                }
-                else {
-                    test = vertex[x + depthSize.x()*y];
-                    surfNorm = normal[x + depthSize.x()*y];
-                }
-
-                if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
-                    const Eigen::Vector3f diff = (test - light).normalized();
-                    const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
-                    Eigen::Vector3f col = dir + ambient;
-                    clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
-                    col *=  255.f;
-                    out[x + depthSize.x()*y] = make_uchar4(col.x(), col.y(), col.z(), 0); // The forth value is a padding to align memory
-                } else {
-                    out[x + depthSize.x()*y] = make_uchar4(0, 0, 0, 0); // The forth value is a padding to align memory
-                }
-            }
-        }
-    TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
-}
