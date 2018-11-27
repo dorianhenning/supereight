@@ -34,20 +34,20 @@ function(add_version appname libraries)# includes)
   endif(OPENNI2_FOUND)
 
   #  ------ BENCHMARK --------
-  add_executable(${appname}-benchmark
-      src/benchmark.cpp
-      src/PowerMonitor.cpp)
-  target_link_libraries(${appname}-benchmark
-      ${appname}
-      ${main_common_libraries})
-  target_include_directories(${appname}-benchmark PUBLIC
-      include)
+#  add_executable(${appname}-benchmark
+#      src/benchmark.cpp
+#      src/PowerMonitor.cpp)
+#  target_link_libraries(${appname}-benchmark
+#      ${appname}
+#      ${main_common_libraries})
+#  target_include_directories(${appname}-benchmark PUBLIC
+#      include)
 
   #  ------ MAIN --------
    if (GLUT_FOUND)
      add_executable(${appname}-main
-         src/mainQt.cpp
-#         src/mainQtColor.cpp
+#         src/mainQt.cpp
+         src/mainQtColor.cpp
          src/PowerMonitor.cpp
          src/reader.cpp)
      target_include_directories(${appname}-main PUBLIC
@@ -89,8 +89,8 @@ function(add_version appname libraries)# includes)
      add_definitions( -D_FILE_OFFSET_BITS=64 -fPIC )
 
      add_executable(${appname}-qt
-         src/mainQt.cpp
-#         src/mainQtColor.cpp
+#         src/mainQt.cpp
+         src/mainQtColor.cpp
          src/PowerMonitor.cpp
          ${qt_srcs}
          src/reader.cpp)

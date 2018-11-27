@@ -8,7 +8,7 @@
  */
 
 #define EXTERNS TRUE
-#include <se/DenseSLAMSystem.h>
+#include <se/ObjectMappingSystem.h>
 #include <stdlib.h>
 #include "interface.h"
 #include <se/config.h>
@@ -45,7 +45,7 @@ extern DepthReader *createReader(Configuration *config, std::string filename =
 
 );
 //We need to know where our kfusion object is so we can get required information
-static DenseSLAMSystem **pipeline_pp;
+static ObjectMappingSystem **pipeline_pp;
 static DepthReader **reader_pp;
 static Configuration *config;
 
@@ -81,14 +81,14 @@ void setLoopMode(bool value) {
 //Should we have a powerMonitor in the main code we can 
 extern PowerMonitor *powerMonitor;
 
-// We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
+// We can pass this to the QT and it will allow us to change features in the ObjectMappingSystem
 static void newDenseSLAMSystem(bool resetPose) {
   Eigen::Matrix4f init_pose = (*pipeline_pp)->getPose();
 
 	if (*pipeline_pp)
 		delete *pipeline_pp;
 	if (!resetPose)
-		*pipeline_pp = new DenseSLAMSystem(
+		*pipeline_pp = new ObjectMappingSystem(
 				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
 				config->volume_resolution,
         config->volume_size, init_pose, config->pyramid, *config);
@@ -100,7 +100,7 @@ static void newDenseSLAMSystem(bool resetPose) {
 						* config->volume_size.x());
 		rot = makeVector(0.0, 0, 0, 0, 0, 0);
     Eigen::Vector3f init_pose = config->initial_pos_factor.cwiseProduct(config->volume_size);
-		*pipeline_pp = new DenseSLAMSystem(
+		*pipeline_pp = new ObjectMappingSystem(
 				Eigen::Vector2i(640 / config->compute_size_ratio,
 						480 / config->compute_size_ratio),
 				config->volume_resolution,
@@ -285,7 +285,7 @@ void dumpPowerLog() {
 
 //This function is what sets up the GUI
 
-void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
+void qtLinkKinectQt(int argc, char *argv[], ObjectMappingSystem **_pipe,
 		DepthReader **_depthReader, Configuration *_config, void *depthRender,
 		void *trackRender, void *volumeRender, void *inputRGB) {
 	pipeline_pp = _pipe;
@@ -332,7 +332,7 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 			(*reader_pp) ? &((*reader_pp)->cameraActive) : &cameraActive,
 			(CameraState (*)(CameraState, std::string))&setEnableCamera);
 
-			//This sets up the images but is pretty ugly and would be better stashed in DenseSLAMSystem
+			//This sets up the images but is pretty ugly and would be better stashed in ObjectMappingSystem
 
 appWindow	->addButtonChoices("Compute Res",
 			{ "640x480", "320x240", "160x120", "80x60" }, { 1, 2, 4, 8 },

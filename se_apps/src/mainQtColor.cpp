@@ -234,8 +234,16 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 			powerMonitor->start();
 
 		timings[1] = std::chrono::steady_clock::now();
-		pipeline->preprocessing(inputDepth, 
-        Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
+//		if (pipeline->render_color_) {
+//			pipeline->preprocessing(inputDepth,
+//									inputRGB,
+//									Eigen::Vector2i(inputSize.x, inputSize.y),
+//									config->bilateralFilter);
+//		} else {
+			pipeline->preprocessing(inputDepth,
+									Eigen::Vector2i(inputSize.x, inputSize.y),
+									config->bilateralFilter);
+//		}
 
 		timings[2] = std::chrono::steady_clock::now();
 
@@ -265,11 +273,19 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 	}
 	if (renderImages) {
-		pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
-		pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
-		pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
-				(processFrame ? reader->getFrameNumber() - frameOffset : 0),
-				config->rendering_rate, camera, 0.75 * config->mu);
+		if (pipeline->render_color_) {
+			pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
+			pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
+			pipeline->renderVolumeColor((unsigned char*)volumeRender, pipeline->getComputationResolution(),
+										(processFrame ? reader->getFrameNumber() - frameOffset : 0),
+										config->rendering_rate, camera, 0.75 * config->mu);
+		} else {
+			pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
+			pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
+			pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
+								   (processFrame ? reader->getFrameNumber() - frameOffset : 0),
+								   config->rendering_rate, camera, 0.75 * config->mu);
+		}
 		timings[6] = std::chrono::steady_clock::now();
 	}
 

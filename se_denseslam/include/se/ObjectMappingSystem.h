@@ -71,9 +71,6 @@ private:
     bool need_render_ = false;
     Configuration config_;
 
-    // color integration
-    bool render_color_ = true;
-
     // segmentation
 
     // input once
@@ -101,6 +98,9 @@ private:
     Eigen::Matrix4f raycast_pose_;
 
 public:
+
+    // color integration
+    bool render_color_ = true;
 
     /**
      * Constructor using the initial camera position.
@@ -160,6 +160,7 @@ public:
      */
     bool preprocessing(const unsigned short *                     inputDepth,
                        const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
+//                       const uchar3 * inputRGB,
                        const Eigen::Vector2i&                     inputSize,
                        const bool                                 filterInput);
 

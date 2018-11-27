@@ -234,7 +234,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 			powerMonitor->start();
 
 		timings[1] = std::chrono::steady_clock::now();
-		pipeline->preprocessing(inputDepth, 
+		pipeline->preprocessing(inputDepth,
         Eigen::Vector2i(inputSize.x, inputSize.y), config->bilateralFilter);
 
 		timings[2] = std::chrono::steady_clock::now();

@@ -232,6 +232,7 @@ float rgb2greyScale(const Eigen::Matrix<unsigned char, 3, 1> rgb) {
 void rgb2intensityKernel(se::Image<float> outputGrey,
 						 se::Image<Eigen::Vector3f> outputRGB,
 						 const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
+//						 const uchar3 * inputRGB,
 						 const Eigen::Vector2i& inputSize) {
 	TICK();
 		// Check for unsupported conditions

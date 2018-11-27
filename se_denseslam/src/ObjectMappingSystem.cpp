@@ -153,10 +153,11 @@ bool ObjectMappingSystem::preprocessing(const unsigned short * inputDepth,
 
 bool ObjectMappingSystem::preprocessing(const unsigned short * inputDepth,
                                         const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
+//                                        const uchar3 * inputRGB,
                                         const Eigen::Vector2i&  inputSize,
                                         const bool filterInput) {
 
-    rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, inputSize);
+//    rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, inputSize);
     mm2metersKernel(float_depth_, inputDepth, inputSize);
     if (filterInput) {
         bilateralFilterKernel(scaled_depth_[0], float_depth_,
