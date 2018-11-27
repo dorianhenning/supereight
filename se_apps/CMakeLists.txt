@@ -47,6 +47,7 @@ function(add_version appname libraries)# includes)
    if (GLUT_FOUND)
      add_executable(${appname}-main
          src/mainQt.cpp
+#         src/mainQtColor.cpp
          src/PowerMonitor.cpp
          src/reader.cpp)
      target_include_directories(${appname}-main PUBLIC
@@ -89,6 +90,7 @@ function(add_version appname libraries)# includes)
 
      add_executable(${appname}-qt
          src/mainQt.cpp
+#         src/mainQtColor.cpp
          src/PowerMonitor.cpp
          ${qt_srcs}
          src/reader.cpp)

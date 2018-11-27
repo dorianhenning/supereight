@@ -34,7 +34,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <se/DenseSLAMSystem.h>
+#include <se/ObjectMappingSystem.h>
 #include <se/ray_iterator.hpp>
 #include <se/algorithms/meshing.hpp>
 #include <se/geometry/octree_collision.hpp>
@@ -52,32 +52,31 @@
 
 extern PerfStats Stats;
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
-                                 const Eigen::Vector3i& volumeResolution,
-                                 const Eigen::Vector3f& volumeDimensions,
-                                 const Eigen::Vector3f& initPose,
-                                 std::vector<int> & pyramid,
-                                 const Configuration& config):
-        DenseSLAMSystem(inputSize,
+ObjectMappingSystem::ObjectMappingSystem(const Eigen::Vector2i& inputSize,
+                                         const Eigen::Vector3i& volumeResolution,
+                                         const Eigen::Vector3f& volumeDimensions,
+                                         const Eigen::Vector3f& initPose,
+                                         std::vector<int> &     pyramid,
+                                         const Configuration&   config):
+        ObjectMappingSystem(inputSize,
                         volumeResolution,
                         volumeDimensions,
-                        toMatrix4f(initPose),
+                        se::math::toMatrix4f(initPose),
                         pyramid,
                         config) { }
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
-                                 const Eigen::Vector3i& volumeResolution,
-                                 const Eigen::Vector3f& volumeDimensions,
-                                 const Eigen::Matrix4f& initPose,
-                                 std::vector<int> & pyramid,
-                                 const Configuration& config) :
+ObjectMappingSystem::ObjectMappingSystem(const Eigen::Vector2i& inputSize,
+                                         const Eigen::Vector3i& volumeResolution,
+                                         const Eigen::Vector3f& volumeDimensions,
+                                         const Eigen::Matrix4f& initPose,
+                                         std::vector<int> &     pyramid,
+                                         const Configuration&   config) :
         computation_size_(inputSize),
         vertex_(computation_size_.x(), computation_size_.y()),
-//  vertex_(computation_size_(0), computation_size_(1)),
         normal_(computation_size_.x(), computation_size_.y()),
-//  normal_(computation_size_(0), computation_size_(1)),
-        float_depth_(computation_size_.x(), computation_size_.y())
-//  float_depth_(computation_size_(0), computation_size_(1))
+        float_depth_(computation_size_.x(), computation_size_.y()),
+        float_rgb_(computation_size_.x(), computation_size_.y()),
+        float_grey_(computation_size_.x(), computation_size_.y())
 {
 
     this->init_pose_ = getPosition();
@@ -136,9 +135,9 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                                 discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
-                                    const Eigen::Vector2i& inputSize,
-                                    const bool filterInput){
+bool ObjectMappingSystem::preprocessing(const unsigned short * inputDepth,
+                                        const Eigen::Vector2i& inputSize,
+                                        const bool filterInput){
 
     mm2metersKernel(float_depth_, inputDepth, inputSize);
     if(filterInput){
@@ -152,13 +151,13 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
     return true;
 }
 
-bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
-                                    const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
-                                    const Eigen::Vector2i&  inputSize,
-                                    const bool filterInput) {
+bool ObjectMappingSystem::preprocessing(const unsigned short * inputDepth,
+                                        const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
+                                        const Eigen::Vector2i&  inputSize,
+                                        const bool filterInput) {
 
-    rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, Eigen::Vector2i(inputSize.x(), inputSize.y()));
-    mm2metersKernel(float_depth_, inputDepth, Eigen::Vector2i(inputSize.x(), inputSize.y()));
+    rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, inputSize);
+    mm2metersKernel(float_depth_, inputDepth, inputSize);
     if (filterInput) {
         bilateralFilterKernel(scaled_depth_[0], float_depth_,
                               gaussian_, e_delta, radius);
@@ -169,8 +168,10 @@ bool DenseSLAMSystem::preprocessing(const ushort * inputDepth,
     return true;
 }
 
-bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
-                               float icp_threshold, unsigned tracking_rate, unsigned frame) {
+bool ObjectMappingSystem::tracking(const Eigen::Vector4f& k,
+                                   float icp_threshold,
+                                   unsigned tracking_rate,
+                                   unsigned frame) {
 
     if (frame % tracking_rate != 0)
         return false;
@@ -217,7 +218,7 @@ bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
                            computation_size_, track_threshold);
 }
 
-bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, uint frame) {
+bool ObjectMappingSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned int frame) {
 
     bool doRaycast = false;
 
@@ -232,8 +233,10 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, uint frame)
     return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, uint integration_rate,
-                                  float mu, uint frame) {
+bool ObjectMappingSystem::integration(const Eigen::Vector4f& k,
+                                      unsigned int integration_rate,
+                                      float mu,
+                                      unsigned int frame) {
 
     bool doIntegrate = checkPoseKernel(pose_, old_pose_,
                                        reduction_output_.data(),
@@ -260,7 +263,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, uint integration_rat
                                         compute_stepsize, step_to_depth, 6*mu);
         }
 
-//        std::cout << "Allocating " << allocated << " voxels.." << std::endl;
         volume_._map_index->allocate(allocation_list_.data(), allocated);
 
         if(std::is_same<FieldType, SDF>::value) {
@@ -327,16 +329,16 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, uint integration_rat
 
 }
 
-void DenseSLAMSystem::dump_volume(std::string ) {
+void ObjectMappingSystem::dump_volume(std::string ) {
 
 }
 
-void DenseSLAMSystem::renderVolumeColor(uchar4 * out,
-                                        const Eigen::Vector2i& outputSize,
-                                        int frame,
-                                        int raycast_rendering_rate,
-                                        const Eigen::Vector4f& k,
-                                        float largestep) {
+void ObjectMappingSystem::renderVolumeColor(unsigned char* out,
+                                            const Eigen::Vector2i& outputSize,
+                                            int frame,
+                                            int raycast_rendering_rate,
+                                            const Eigen::Vector4f& k,
+                                            float largestep) {
     if (frame % raycast_rendering_rate == 0) {
         const float step = volume_dimension_.x() / volume_resolution_.x();
         renderVolumeKernelColor(volume_,
@@ -356,12 +358,12 @@ void DenseSLAMSystem::renderVolumeColor(uchar4 * out,
     }
 }
 
-void DenseSLAMSystem::renderVolume(uchar4 * out,
-                                   const Eigen::Vector2i& outputSize,
-                                   int frame,
-                                   int raycast_rendering_rate,
-                                   const Eigen::Vector4f& k,
-                                   float largestep) {
+void ObjectMappingSystem::renderVolume(unsigned char* out,
+                                       const Eigen::Vector2i& outputSize,
+                                       int frame,
+                                       int raycast_rendering_rate,
+                                       const Eigen::Vector4f& k,
+                                       float largestep) {
     if (frame % raycast_rendering_rate == 0) {
         const float step = volume_dimension_.x() / volume_resolution_.x();
         renderVolumeKernel(volume_,
@@ -381,17 +383,17 @@ void DenseSLAMSystem::renderVolume(uchar4 * out,
     }
 }
 
-void DenseSLAMSystem::renderTrack(uchar4 * out,
-                                  const Eigen::Vector2i& outputSize) {
+void ObjectMappingSystem::renderTrack(unsigned char * out,
+                                      const Eigen::Vector2i& outputSize) {
     renderTrackKernel(out, tracking_result_.data(), outputSize);
 }
 
-void DenseSLAMSystem::renderDepth(uchar4 * out,
-                                  const Eigen::Vector2i& outputSize) {
+void ObjectMappingSystem::renderDepth(unsigned char * out,
+                                      const Eigen::Vector2i& outputSize) {
     renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
 
-void DenseSLAMSystem::dump_mesh(const std::string filename){
+void ObjectMappingSystem::dump_mesh(const std::string filename){
 
     std::vector<Triangle> mesh;
     auto inside = [](const Volume<FieldType>::value_type& val) {

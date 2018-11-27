@@ -286,3 +286,77 @@ void renderVolumeKernel(const Volume<T>& volume,
   TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
 }
 
+template <typename T>
+void renderVolumeKernelColor(const Volume<T>& volume,
+                             unsigned char* out, // RGBW packed
+                             const Eigen::Vector2i& depthSize,
+                             const Eigen::Matrix4f view,
+                             const float nearPlane,
+                             const float farPlane,
+                             const float mu,
+                             const float step,
+                             const float largestep,
+                             const Eigen::Vector3f light,
+                             const Eigen::Vector3f ambient,
+                             bool render,
+                             const se::Image<Eigen::Vector3f>& vertex,
+                             const se::Image<Eigen::Vector3f>& normal) {
+  TICK();
+    int y;
+#pragma omp parallel for shared(out), private(y)
+    for (y = 0; y < depthSize.y(); y++) {
+      for (int x = 0; x < depthSize.x(); x++) {
+        Eigen::Vector4f hit;
+        Eigen::Vector3f test, surfNorm;
+        const int idx = (x + depthSize.x()*y) * 4;
+
+        if(render) {
+          const Eigen::Vector3f dir =
+                  (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
+          const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
+          se::ray_iterator<typename Volume<T>::field_type> ray(*volume._map_index,
+                                                               transl, dir, nearPlane, farPlane);
+          ray.next();
+          const float t_min = ray.tmin(); /* Get distance to the first intersected block */
+          hit = t_min > 0.f ?
+                raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, largestep) :
+                Eigen::Vector4f::Constant(0.f);
+          if (hit.w() > 0) {
+            test = hit.head<3>();
+            Eigen::Vector3f surfNorm = volume.grad(test,
+                                                   [](const auto& val){ return val.x; });
+
+            // Invert normals if SDF
+            surfNorm = std::is_same<T, SDF>::value ? -1.f * surfNorm : surfNorm;
+          } else {
+            out[idx + 0] = 0;
+            out[idx + 1] = 0;
+            out[idx + 2] = 0;
+            out[idx + 3] = 0;
+          }
+        }
+        else {
+          test = vertex[x + depthSize.x()*y];
+          surfNorm = normal[x + depthSize.x()*y];
+        }
+
+        if (surfNorm.x() != INVALID && surfNorm.norm() > 0) {
+          const Eigen::Vector3f diff = (test - light).normalized();
+          const Eigen::Vector3f dir = Eigen::Vector3f::Constant(fmaxf(surfNorm.normalized().dot(diff), 0.f));
+          Eigen::Vector3f col = dir + ambient;
+          se::math::clamp(col, Eigen::Vector3f::Constant(0.f), Eigen::Vector3f::Constant(1.f));
+          col *=  255.f;
+          out[idx + 0] = col.x();
+          out[idx + 1] = col.y();
+          out[idx + 2] = col.z();
+          out[idx + 3] = 0;
+        } else {
+          out[idx + 0] = 0;
+          out[idx + 1] = 0;
+          out[idx + 2] = 0;
+          out[idx + 3] = 0;
+        }
+      }
+    }
+  TOCK("renderVolumeKernelColor", depthSize.x * depthSize.y);
+}

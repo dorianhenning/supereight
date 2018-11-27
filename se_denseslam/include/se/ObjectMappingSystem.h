@@ -49,13 +49,13 @@
 #include <Eigen/Dense>
 
 /*
- * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
+ * Use SE_FIELD_TYPE macro to define the ObjectMappingSystem instance.
  */
 typedef SE_FIELD_TYPE FieldType;
 template <typename T>
 using Volume = VolumeTemplate<T, se::Octree>;
 
-class DenseSLAMSystem {
+class ObjectMappingSystem {
 
 private:
     Eigen::Vector2i computation_size_;
@@ -93,8 +93,8 @@ private:
     std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
     std::vector<se::Image<Eigen::Vector3f> > input_normal_;
     se::Image<float> float_depth_;
-//    se::Image<Eigen::Vector3f> float_rgb_;
-//    se::Image<float> float_grey_; // for intensity of color
+    se::Image<Eigen::Vector3f> float_rgb_;
+    se::Image<float> float_grey_; // for intensity of color
 //    se::Image<TrackData>  tracking_result_;
     std::vector<TrackData>  tracking_result_;
     Eigen::Matrix4f old_pose_;
@@ -115,12 +115,12 @@ public:
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
-                    const Eigen::Vector3i& volumeResolution,
-                    const Eigen::Vector3f& volumeDimensions,
-                    const Eigen::Vector3f& initPose,
-                    std::vector<int> &     pyramid,
-                    const Configuration&   config);
+    ObjectMappingSystem(const Eigen::Vector2i& inputSize,
+                        const Eigen::Vector3i& volumeResolution,
+                        const Eigen::Vector3f& volumeDimensions,
+                        const Eigen::Vector3f& initPose,
+                        std::vector<int> &     pyramid,
+                        const Configuration&   config);
     /**
      * Constructor using the initial camera position.
      *
@@ -133,12 +133,12 @@ public:
      * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
      * \param[in] config The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
-                    const Eigen::Vector3i& volumeResolution,
-                    const Eigen::Vector3f& volumeDimensions,
-                    const Eigen::Matrix4f& initPose,
-                    std::vector<int> &     pyramid,
-                    const Configuration&   config);
+    ObjectMappingSystem(const Eigen::Vector2i& inputSize,
+                        const Eigen::Vector3i& volumeResolution,
+                        const Eigen::Vector3f& volumeDimensions,
+                        const Eigen::Matrix4f& initPose,
+                        std::vector<int> &     pyramid,
+                        const Configuration&   config);
 
     /**
      * Preprocess a single depth measurement frame and add it to the pipeline.
@@ -151,14 +151,14 @@ public:
      * filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const ushort *         inputDepth,
+    bool preprocessing(const unsigned short * inputDepth,
                        const Eigen::Vector2i& inputSize,
                        const bool             filterInput);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const ushort *                             inputDepth,
+    bool preprocessing(const unsigned short *                     inputDepth,
                        const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
                        const Eigen::Vector2i&                     inputSize,
                        const bool                                 filterInput);
@@ -198,9 +198,9 @@ public:
      * and false if it wasn't.
      */
     bool integration(const Eigen::Vector4f& k,
-                     unsigned               integration_rate,
+                     unsigned int           integration_rate,
                      float                  mu,
-                     unsigned               frame);
+                     unsigned int           frame);
 
     /**
      * Raycast the 3D reconstruction after integration to update the values of
@@ -218,7 +218,7 @@ public:
      */
     bool raycasting(const Eigen::Vector4f& k,
                     float                  mu,
-                    uint                   frame);
+                    unsigned int           frame);
 
     /*
      * TODO Implement this.
@@ -247,7 +247,7 @@ public:
      * \param[in] largestep TSDF truncation bound. See ::Configuration.mu for more
      * details.
      */
-    void renderVolume(uchar4 *               out,
+    void renderVolume(unsigned char *        out,
                       const Eigen::Vector2i& outputSize,
                       int                    frame,
                       int                    raycast_rendering_rate,
@@ -257,7 +257,7 @@ public:
     /*
      * TODO Implement this.
      */
-    void renderVolumeColor(uchar4 *               out,
+    void renderVolumeColor(unsigned char *        out,
                            const Eigen::Vector2i& outputSize,
                            int                    frame,
                            int                    raycast_rendering_rate,
@@ -284,7 +284,7 @@ public:
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderTrack(uchar4 *               out,
+    void renderTrack(unsigned char *        out,
                      const Eigen::Vector2i& outputSize);
 
     /**
@@ -301,7 +301,7 @@ public:
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
      */
-    void renderDepth(uchar4*                out,
+    void renderDepth(unsigned char *        out,
                      const Eigen::Vector2i& outputSize);
 
     //

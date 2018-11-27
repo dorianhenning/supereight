@@ -224,3 +224,41 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
 	}
 	TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
 }
+
+float rgb2greyScale(const Eigen::Matrix<unsigned char, 3, 1> rgb) {
+	return (0.2989f * rgb.x() + 0.5870f * rgb.y() + 0.1140f * rgb.z()) / 255.0f;
+}
+
+void rgb2intensityKernel(se::Image<float> outputGrey,
+						 se::Image<Eigen::Vector3f> outputRGB,
+						 const Eigen::Matrix<unsigned char, 3, 1> * inputRGB,
+						 const Eigen::Vector2i& inputSize) {
+	TICK();
+		// Check for unsupported conditions
+		if ((inputSize.x() < outputRGB.width()) || inputSize.y() < outputRGB.height()) {
+			std::cerr << "Invalid ratio." << std::endl;
+			exit(1);
+		}
+		if ((inputSize.x() % outputRGB.width() != 0) || (inputSize.y() % outputRGB.height() != 0)) {
+			std::cerr << "Invalid ratio." << std::endl;
+			exit(1);
+		}
+		if ((inputSize.x() / outputRGB.width() != inputSize.y() / outputRGB.height())) {
+			std::cerr << "Invalid ratio." << std::endl;
+			exit(1);
+		}
+
+		int ratio = inputSize.x() / outputRGB.width();
+		int y;
+#pragma omp parallel for \
+        shared(outputGrey, outputRGB), private(y)
+		for (y = 0; y < outputRGB.height(); y++)
+			for (int x = 0; x < outputRGB.width(); x++) {
+				const Eigen::Matrix<unsigned char, 3, 1> rgb_resized = inputRGB[x * ratio + inputSize.x() * y * ratio];
+				outputRGB[x + outputRGB.width() * y].x() = rgb_resized.x() / 255.0f;
+				outputRGB[x + outputRGB.width() * y].y() = rgb_resized.y() / 255.0f;
+				outputRGB[x + outputRGB.width() * y].z() = rgb_resized.z() / 255.0f;
+				outputGrey[x + outputGrey.width() * y] = rgb2greyScale(rgb_resized);
+			}
+	TOCK("rgb2intensity", outSize.x * outSize.y);
+}
