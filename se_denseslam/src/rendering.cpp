@@ -276,7 +276,7 @@ void renderVolumeKernel(const Volume<T>& volume,
           const float interp_g = volume.interp(test, [](const auto& val){ return val.g; });
           const float interp_b = volume.interp(test, [](const auto& val){ return val.b; });
           const Eigen::Vector3f rgb(interp_r, interp_g, interp_b);
-          std::cout << rgb;
+//          std::cout << rgb;
           col = dir.cwiseProduct(rgb) + ambient;
         } else {
           col = dir + ambient;

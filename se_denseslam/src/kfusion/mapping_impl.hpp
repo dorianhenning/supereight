@@ -53,14 +53,14 @@ struct sdf_update {
       data.y = fminf(data.y + 1, maxweight);
 
       // color information
-      if (rgb_ != nullptr) {
+//      if (rgb_ != nullptr) {
         const Eigen::Vector3f rgb_measured = rgb_[px(0) + depthSize(0)*px(1)];
         data.r = se::math::clamp((rgb_measured(0) + data.w * data.r) / (data.w + 1), 0.f, 1.f);// * 255;
         data.g = se::math::clamp((rgb_measured(1) + data.w * data.g) / (data.w + 1), 0.f, 1.f);// * 255;
         data.b = se::math::clamp((rgb_measured(2) + data.w * data.b) / (data.w + 1), 0.f, 1.f);// * 255;
         data.w = fminf(data.w + 1, maxweight);
 //                data.w += 1; // not sure which one to take, but fminf seems reasonable
-      }
+//      }
 
       handler.set(data);
     }
@@ -87,7 +87,7 @@ struct sdf_update {
               rgb_(rgb),
               depthSize(framesize),
               mu(m),
-              maxweight(mw) {};
+              maxweight(mw) {};// std::cout << rgb_->x() << std::endl; };
 
   const float * depth;
   const Eigen::Vector3f * rgb_;
