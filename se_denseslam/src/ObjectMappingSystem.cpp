@@ -157,7 +157,9 @@ bool ObjectMappingSystem::preprocessing(const unsigned short * inputDepth,
                                         const Eigen::Vector2i&  inputSize,
                                         const bool filterInput) {
 
-//    rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, inputSize);
+    if (render_color_) {
+        rgb2intensityKernel(float_grey_, float_rgb_, inputRGB, inputSize);
+    }
     mm2metersKernel(float_depth_, inputDepth, inputSize);
     if (filterInput) {
         bilateralFilterKernel(scaled_depth_[0], float_depth_,
@@ -334,30 +336,30 @@ void ObjectMappingSystem::dump_volume(std::string ) {
 
 }
 
-void ObjectMappingSystem::renderVolumeColor(unsigned char* out,
-                                            const Eigen::Vector2i& outputSize,
-                                            int frame,
-                                            int raycast_rendering_rate,
-                                            const Eigen::Vector4f& k,
-                                            float largestep) {
-    if (frame % raycast_rendering_rate == 0) {
-        const float step = volume_dimension_.x() / volume_resolution_.x();
-        renderVolumeKernelColor(volume_,
-                                out,
-                                outputSize,
-                                *(this->viewPose_) * getInverseCameraMatrix(k),
-                                nearPlane,
-                                farPlane * 2.0f,
-                                mu_,
-                                step,
-                                largestep,
-                                this->viewPose_->topRightCorner<3, 1>(),
-                                ambient,
-                                !(this->viewPose_->isApprox(raycast_pose_)),
-                                vertex_,
-                                normal_);
-    }
-}
+//void ObjectMappingSystem::renderVolumeColor(unsigned char* out,
+//                                            const Eigen::Vector2i& outputSize,
+//                                            int frame,
+//                                            int raycast_rendering_rate,
+//                                            const Eigen::Vector4f& k,
+//                                            float largestep) {
+//    if (frame % raycast_rendering_rate == 0) {
+//        const float step = volume_dimension_.x() / volume_resolution_.x();
+//        renderVolumeKernelColor(volume_,
+//                                out,
+//                                outputSize,
+//                                *(this->viewPose_) * getInverseCameraMatrix(k),
+//                                nearPlane,
+//                                farPlane * 2.0f,
+//                                mu_,
+//                                step,
+//                                largestep,
+//                                this->viewPose_->topRightCorner<3, 1>(),
+//                                ambient,
+//                                !(this->viewPose_->isApprox(raycast_pose_)),
+//                                vertex_,
+//                                normal_);
+//    }
+//}
 
 void ObjectMappingSystem::renderVolume(unsigned char* out,
                                        const Eigen::Vector2i& outputSize,
@@ -379,6 +381,7 @@ void ObjectMappingSystem::renderVolume(unsigned char* out,
                            this->viewPose_->topRightCorner<3, 1>(),
                            ambient,
                            !(this->viewPose_->isApprox(raycast_pose_)),
+                           render_color_,
                            vertex_,
                            normal_);
     }

@@ -84,6 +84,8 @@ void storeStats(int frame,
 	Stats.sample("integrated", integrated, PerfStats::INT);
 }
 
+Eigen::Matrix<unsigned char, 3, 1> * toEigen(uchar3 * in, uint2 inputSize);
+
 /***
  * This program loop over a scene recording
  */
@@ -234,16 +236,29 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 			powerMonitor->start();
 
 		timings[1] = std::chrono::steady_clock::now();
-//		if (pipeline->render_color_) {
-//			pipeline->preprocessing(inputDepth,
-//									inputRGB,
-//									Eigen::Vector2i(inputSize.x, inputSize.y),
-//									config->bilateralFilter);
-//		} else {
+//        Eigen::Matrix<unsigned char, 3, 1> * test = toEigen(inputRGB, inputSize);
+//        std::cout << "test1: " << std::endl;
+//        std::cout << test << std::endl;
+//        std::cout << "test2: " << std::endl;
+//        std::cout << inputRGB << std::endl;
+//        std::cout << "test3: " << std::endl;
+//        std::cout << inputSize << std::endl;
+//        std::cout << "test4: " << std::endl;
+//        std::cout << test->x() << std::endl;
+//        std::cout << "test5: " << std::endl;
+//        std::cout << +(test->x()) << std::endl;
+//        std::cout << "test6: " << std::endl;
+//        std::cout << (*test).x() << std::endl;
+		if (pipeline->render_color_) {
+			pipeline->preprocessing(inputDepth,
+									toEigen(inputRGB, inputSize),
+									Eigen::Vector2i(inputSize.x, inputSize.y),
+									config->bilateralFilter);
+		} else {
 			pipeline->preprocessing(inputDepth,
 									Eigen::Vector2i(inputSize.x, inputSize.y),
 									config->bilateralFilter);
-//		}
+		}
 
 		timings[2] = std::chrono::steady_clock::now();
 
@@ -273,19 +288,19 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 	}
 	if (renderImages) {
-		if (pipeline->render_color_) {
-			pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
-			pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
-			pipeline->renderVolumeColor((unsigned char*)volumeRender, pipeline->getComputationResolution(),
-										(processFrame ? reader->getFrameNumber() - frameOffset : 0),
-										config->rendering_rate, camera, 0.75 * config->mu);
-		} else {
+//		if (pipeline->render_color_) {
+//			pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
+//			pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
+//			pipeline->renderVolumeColor((unsigned char*)volumeRender, pipeline->getComputationResolution(),
+//										(processFrame ? reader->getFrameNumber() - frameOffset : 0),
+//										config->rendering_rate, camera, 0.75 * config->mu);
+//		} else {
 			pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
 			pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
 			pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
 								   (processFrame ? reader->getFrameNumber() - frameOffset : 0),
 								   config->rendering_rate, camera, 0.75 * config->mu);
-		}
+//		}
 		timings[6] = std::chrono::steady_clock::now();
 	}
 
@@ -308,3 +323,28 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 	return (finished);
 }
 
+// quick fix for uchar3 to rgb
+Eigen::Matrix<unsigned char, 3, 1> * toEigen(uchar3 * in, uint2 inputSize)
+{
+//    std::cout << "function call." << std::endl;
+    Eigen::Matrix<unsigned char, 3, 1> * out;
+    out = new Eigen::Matrix<unsigned char, 3, 1>[inputSize.x*inputSize.y];
+    for (int t = 0; t < inputSize.x*inputSize.y; t++) {
+
+        (out+t)->x() = +(in+t)->x;
+        (out+t)->y() = +(in+t)->y;
+        (out+t)->z() = +(in+t)->z;
+//        if (t % 1000 == 0) {
+//            std::cout << "test1: " << std::endl;
+//            std::cout << (out+t)->x() << std::endl;
+//            std::cout << "test2: " << std::endl;
+//            std::cout << +(in+t)->x << std::endl;
+//            std::cout << "test4: " << std::endl;
+//            std::cout << (out+t)->x() << std::endl;
+//            std::cout << "test5: " << std::endl;
+//            std::cout << (out+t) << std::endl;
+//        }
+    }
+
+    return out;
+}

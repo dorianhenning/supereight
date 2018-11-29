@@ -225,7 +225,7 @@ void halfSampleRobustImageKernel(se::Image<float>& out,
 	TOCK("halfSampleRobustImageKernel", outSize.x * outSize.y);
 }
 
-float rgb2greyScale(const Eigen::Matrix<unsigned char, 3, 1> rgb) {
+float rgb2greyScale(const Eigen::Matrix<unsigned char, 3, 1> & rgb) {
 	return (0.2989f * rgb.x() + 0.5870f * rgb.y() + 0.1140f * rgb.z()) / 255.0f;
 }
 
@@ -248,16 +248,21 @@ void rgb2intensityKernel(se::Image<float> outputGrey,
 			std::cerr << "Invalid ratio." << std::endl;
 			exit(1);
 		}
-
 		int ratio = inputSize.x() / outputRGB.width();
 		int y;
 #pragma omp parallel for \
         shared(outputGrey, outputRGB), private(y)
 		for (y = 0; y < outputRGB.height(); y++)
 			for (int x = 0; x < outputRGB.width(); x++) {
-				const Eigen::Matrix<unsigned char, 3, 1> rgb_resized = inputRGB[x * ratio + inputSize.x() * y * ratio];
+//                std::cout << x << " - " << ratio << " - " << inputSize.x() << " - " << y << " - " << ratio << std::endl;
+//                std::cout << (*inputRGB) << std::endl;
+//                std::cout << (*inputRGB)[x * ratio + inputSize.x() * y * ratio] << std::endl;
+                const Eigen::Matrix<unsigned char, 3, 1> rgb_resized = *(inputRGB + x * ratio + inputSize.x() * y * ratio);
+//				outputRGB[x + outputRGB.width() * y].x() = (*inputRGB)[x * ratio + inputSize.x() * y * ratio].x() / 255.0f;
 				outputRGB[x + outputRGB.width() * y].x() = rgb_resized.x() / 255.0f;
+//				outputRGB[x + outputRGB.width() * y].y() = (*inputRGB)[x * ratio + inputSize.x() * y * ratio].y() / 255.0f;
 				outputRGB[x + outputRGB.width() * y].y() = rgb_resized.y() / 255.0f;
+//				outputRGB[x + outputRGB.width() * y].z() = (*inputRGB)[x * ratio + inputSize.x() * y * ratio].z() / 255.0f;
 				outputRGB[x + outputRGB.width() * y].z() = rgb_resized.z() / 255.0f;
 				outputGrey[x + outputGrey.width() * y] = rgb2greyScale(rgb_resized);
 			}
