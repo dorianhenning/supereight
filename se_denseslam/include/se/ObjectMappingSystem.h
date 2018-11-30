@@ -92,7 +92,6 @@ private:
     se::Image<float> float_depth_;
     se::Image<Eigen::Vector3f> float_rgb_;
     se::Image<float> float_grey_; // for intensity of color
-//    se::Image<TrackData>  tracking_result_;
     std::vector<TrackData>  tracking_result_;
     Eigen::Matrix4f old_pose_;
     Eigen::Matrix4f raycast_pose_;
