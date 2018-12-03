@@ -47,6 +47,8 @@
 #include "volume_traits.hpp"
 #include "continuous/volume_template.hpp"
 #include <Eigen/Dense>
+#include "object/Object.h"
+#include "segmentation/Segmentation.h"
 
 /*
  * Use SE_FIELD_TYPE macro to define the ObjectMappingSystem instance.
@@ -95,6 +97,15 @@ private:
     std::vector<TrackData>  tracking_result_;
     Eigen::Matrix4f old_pose_;
     Eigen::Matrix4f raycast_pose_;
+
+    // objects
+    ObjectList objectList_; //also contains static environment (first model)
+    ObjectPointer staticMap; //static background
+    ProbVector bgProbabilityVector = ProbVector::Zero();
+
+    // segmentation
+    std::shared_ptr<Segmentation> segmentation_;
+    std::vector<SegmentationResult> segResult_;
 
 public:
 

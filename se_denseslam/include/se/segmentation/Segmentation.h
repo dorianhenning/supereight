@@ -5,6 +5,11 @@
 #ifndef SUPEREIGHT_SEGMENTATION_H
 #define SUPEREIGHT_SEGMENTATION_H
 
+#include <map>
+#include <vector>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
+
 struct SegmentationResult {
     std::map<int, cv::Mat> instanceIDmask_;
     cv::Mat labelImg_;
@@ -19,27 +24,37 @@ struct SegmentationResult {
     int width_;
     int height_;
 
-    SegmentationResult(int width, int height): width_(width), height_(height){
-        labelImg = cv::Mat::zeros(cv::Size(height, width), CV_32SC1);
+    SegmentationResult(int width, int height): width_(width), height_(height)
+    {
+        labelImg_ = cv::Mat::zeros(cv::Size(height, width), CV_32SC1);
     }
 
-    SegmentationResult(uint2 imgSize){
-        width_ = imgSize.y;
-        height_ = imgSize.x;
-        labelImg = cv::Mat::zeros(cv::Size(imgSize.x, imgSize.y), CV_32SC1);
+    SegmentationResult(Eigen::Vector2i& imgSize)
+    {
+        width_ = imgSize.y();
+        height_ = imgSize.x();
+        labelImg_ = cv::Mat::zeros(cv::Size(height_, width_), CV_32SC1);
     }
 
-    void reset(){
-        labelImg = cv::Mat::zeros(cv::Size(height_, width_), CV_32SC1);
-        instance_id_mask.clear();
-        instance_class_id.clear();
+    void reset()
+    {
+        labelImg_ = cv::Mat::zeros(cv::Size(height_, width_), CV_32SC1);
+        instanceIDmask_.clear();
+        instanceClassID_.clear();
     }
 
-    int find_classID_from_instaneID(const int& instance_id, bool info) const;
-    bool find_classProb_from_instID(ProbVector& all_prob, const int &instance_id,
+    int findClassIDfromInstanceID(const int& instance_id, bool info) const;
+    bool findClassProbFromInstanceID(ProbVector& all_prob, const int &instance_id,
                                     bool info) const;
-    void output(const uint&frame, std::string str ) const ;
-    void print_class_all_prob();
+    void output(const uint&frame, std::string str ) const;
+    void printClassProbVector();
+};
+
+class Segmentation {
+public:
+
+
+private:
 };
 
 #endif //SUPEREIGHT_SEGMENTATION_H

@@ -71,6 +71,8 @@
 
 #define INVALID -2
 // DATA TYPE
+typedef Eigen::Matrix<float, 80, 1> ProbVector;
+
 //
 
 inline

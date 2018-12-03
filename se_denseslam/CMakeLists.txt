@@ -9,6 +9,14 @@ endif(APPLE)
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(TooN REQUIRED)
+
+find_package(OpenCV REQUIRED)
+
+if (OpenCV_FOUND)
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    link_libraries(${OpenCV_LIBRARIES})
+endif ()
+
 if(WITH_OPENMP)
   find_package(OpenMP)
   if(OPENMP_FOUND)

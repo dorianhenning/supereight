@@ -7,7 +7,7 @@
 
 #include <se/commons.h>
 #include <se/image/image.hpp>
-#include "math_utils.h"
+#include <se/utils/math_utils.h>
 
 /*
  * Use SE_FIELD_TYPE macro to define the DenseSLAMSystem instance.
@@ -57,7 +57,7 @@ public:
 
     void integrateBackgroundKernel(const Eigen::Vector4f    k,
                                    const float              mu,
-                                   const uint               frame,
+                                   const unsigned int       frame,
                                    const Eigen::Matrix4f&   T_w_c,
                                    const float *            float_depth,
                                    const Eigen::Vector3f *  float_rgb,
